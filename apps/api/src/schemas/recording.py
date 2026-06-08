@@ -45,3 +45,16 @@ class ConversationSummaryResponse(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+class RecordingSummaryResponse(BaseModel):
+    """Recording-level summary with AI insights across all conversations."""
+    id: str
+    status: str
+    duration_seconds: int | None = None
+    total_conversations: int = 0
+    top_intent: str | None = None
+    top_objection: str | None = None
+    missed_opportunities: int = 0
+    outcomes: dict = {}
+    avg_confidence: float | None = None

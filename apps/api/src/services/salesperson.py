@@ -87,11 +87,11 @@ async def get_salesperson_performance(
     scores_list = [row[0] for row in score_result.all() if row[0]]
 
     if scores_list:
-        avg_greeting = sum(s.get("greeting", 0) for s in scores_list) / len(scores_list)
-        avg_discovery = sum(s.get("discovery", 0) for s in scores_list) / len(scores_list)
-        avg_pk = sum(s.get("product_knowledge", 0) for s in scores_list) / len(scores_list)
-        avg_oh = sum(s.get("objection_handling", 0) for s in scores_list) / len(scores_list)
-        avg_closing = sum(s.get("closing", 0) for s in scores_list) / len(scores_list)
+        avg_greeting = sum(s.get("greeting_score", 0) for s in scores_list) / len(scores_list)
+        avg_discovery = sum(s.get("discovery_score", 0) for s in scores_list) / len(scores_list)
+        avg_pk = sum(s.get("product_knowledge_score", 0) for s in scores_list) / len(scores_list)
+        avg_oh = sum(s.get("objection_handling_score", 0) for s in scores_list) / len(scores_list)
+        avg_closing = sum(s.get("closing_score", 0) for s in scores_list) / len(scores_list)
         avg_overall = (avg_greeting + avg_discovery + avg_pk + avg_oh + avg_closing) / 5
     else:
         avg_greeting = avg_discovery = avg_pk = avg_oh = avg_closing = avg_overall = None

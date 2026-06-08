@@ -1,12 +1,14 @@
 import uuid
+from collections import Counter
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from src.models.conversation import Conversation
+from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
 from src.models.transcript import TranscriptSegment
-from src.schemas.recording import RecordingResponse
+from src.schemas.recording import RecordingResponse, RecordingSummaryResponse
 
 
 async def get_recording(db: AsyncSession, recording_id: str) -> Recording | None:
@@ -68,3 +70,57 @@ async def get_conversations(db: AsyncSession, recording_id: str) -> list[Convers
         .order_by(Conversation.start_time)
     )
     return list(result.scalars().all())
+
+
+async def get_recording_summary(db: AsyncSession, recording_id: str) -> RecordingSummaryResponse:
+    """Build a recording-level summary from all conversation analyses."""
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        raise ValueError("Recording not found")
+
+    # Load conversations with analysis
+    result = await db.execute(
+        select(Conversation)
+        .options(selectinload(Conversation.analysis))
+        .where(Conversation.recording_id == uuid.UUID(recording_id))
+        .order_by(Conversation.start_time)
+    )
+    conversations = list(result.scalars().all())
+
+    total_conversations = len(conversations)
+    intents: list[str] = []
+    objections: list[str] = []
+    outcomes: Counter = Counter()
+    confidences: list[int] = []
+    missed = 0
+
+    for conv in conversations:
+        if conv.analysis:
+            a = conv.analysis
+            if a.intent:
+                intents.append(a.intent)
+            if a.objections:
+                objections.extend(a.objections)
+            if a.outcome:
+                outcomes[a.outcome] += 1
+                if a.outcome == "LOST":
+                    missed += 1
+            if a.confidence:
+                confidences.append(a.confidence)
+
+    # Top intent and objection
+    top_intent = Counter(intents).most_common(1)[0][0] if intents else None
+    top_objection = Counter(objections).most_common(1)[0][0] if objections else None
+    avg_confidence = round(sum(confidences) / len(confidences), 1) if confidences else None
+
+    return RecordingSummaryResponse(
+        id=str(recording.id),
+        status=recording.status.value,
+        duration_seconds=recording.duration_seconds,
+        total_conversations=total_conversations,
+        top_intent=top_intent,
+        top_objection=top_objection,
+        missed_opportunities=missed,
+        outcomes=dict(outcomes),
+        avg_confidence=avg_confidence,
+    )

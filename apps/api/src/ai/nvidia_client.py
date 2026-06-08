@@ -191,5 +191,43 @@ class NVIDIAClient:
         raise NVIDIAAPIError(f"Failed after {self._max_retries} retries: {last_error}")
 
 
+    def chat_completion(
+        self,
+        messages: list[dict[str, str]],
+        model: str | None = None,
+        temperature: float = 0.1,
+        max_tokens: int = 4096,
+        response_format: dict | None = None,
+    ) -> str:
+        """Call NVIDIA NIM chat completions endpoint (OpenAI-compatible).
+
+        Args:
+            messages: List of {role, content} message dicts
+            model: Model override (defaults to settings.nvidia_llm_model)
+            temperature: Sampling temperature
+            max_tokens: Maximum response tokens
+            response_format: Optional response format (e.g. {"type": "json_object"})
+
+        Returns:
+            The assistant's response text content
+        """
+        payload: dict[str, Any] = {
+            "model": model or settings.nvidia_llm_model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if response_format:
+            payload["response_format"] = response_format
+
+        response = self.post_json("/chat/completions", payload)
+
+        # Extract content from OpenAI-compatible response
+        choices = response.get("choices", [])
+        if not choices:
+            raise NVIDIAAPIError("No choices in chat completion response")
+        return choices[0].get("message", {}).get("content", "")
+
+
 # Singleton client instance
 nvidia_client = NVIDIAClient()

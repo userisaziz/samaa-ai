@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
@@ -5,21 +6,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import require_salesperson_up
 from src.database import get_db
+from src.models.recording import RecordingStatus
 from src.models.user import User
 from src.schemas.recording import (
     ConversationSummaryResponse,
     RecordingResponse,
     RecordingStatusResponse,
+    RecordingSummaryResponse,
     TranscriptSegmentResponse,
 )
 from src.services.recording import (
     create_recording,
     get_conversations,
     get_recording,
+    get_recording_summary,
     get_transcript,
 )
 from src.storage.local import get_storage
 from src.workers.pipeline import start_processing_pipeline
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_FORMATS = {"wav", "mp3", "m4a"}
 ALLOWED_MIME_TYPES = {"audio/wav", "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/mp3"}
@@ -69,9 +75,7 @@ async def upload_recording(
         start_processing_pipeline(str(recording.id))
     except Exception as e:
         # If Redis/Celery is unavailable, recording stays in UPLOADED status
-        # Can be re-triggered later via re-process endpoint
-        import logging
-        logging.getLogger(__name__).warning(f"Could not enqueue pipeline: {e}")
+        logger.warning(f"Could not enqueue pipeline: {e}")
 
     return recording
 
@@ -120,3 +124,43 @@ async def get_recording_conversations(
     _user: User = Depends(require_salesperson_up),
 ):
     return await get_conversations(db, recording_id)
+
+
+@router.get("/{recording_id}/summary", response_model=RecordingSummaryResponse)
+async def get_recording_summary(
+    recording_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    return await get_recording_summary(db, recording_id)
+
+
+@router.post("/{recording_id}/reprocess", response_model=RecordingResponse)
+async def reprocess_recording(
+    recording_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    """Re-trigger the processing pipeline for a failed or stale recording."""
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+
+    if recording.status == RecordingStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Recording already completed")
+
+    # Reset status to UPLOADED to re-trigger pipeline
+    recording.status = RecordingStatus.UPLOADED
+    recording.error_message = None
+    await db.flush()
+
+    try:
+        start_processing_pipeline(str(recording.id))
+    except Exception as e:
+        logger.warning(f"Could not enqueue pipeline for reprocess: {e}")
+
+    await db.refresh(recording)
+    return recording
