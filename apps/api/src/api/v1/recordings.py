@@ -10,6 +10,7 @@ from src.models.recording import RecordingStatus
 from src.models.user import User
 from src.schemas.recording import (
     ConversationSummaryResponse,
+    PaginatedRecordingsResponse,
     RecordingResponse,
     RecordingStatusResponse,
     RecordingSummaryResponse,
@@ -21,6 +22,7 @@ from src.services.recording import (
     get_recording,
     get_recording_summary,
     get_transcript,
+    list_recordings,
 )
 from src.storage.local import get_storage
 from src.workers.pipeline import start_processing_pipeline
@@ -31,6 +33,20 @@ ALLOWED_FORMATS = {"wav", "mp3", "m4a"}
 ALLOWED_MIME_TYPES = {"audio/wav", "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/mp3"}
 
 router = APIRouter(prefix="/recordings", tags=["Recordings"])
+
+
+@router.get("", response_model=PaginatedRecordingsResponse)
+async def list_recordings_endpoint(
+    page: int = 1,
+    page_size: int = 20,
+    status: str | None = None,
+    salesperson_id: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    return await list_recordings(
+        db, page=page, page_size=page_size, status=status, salesperson_id=salesperson_id
+    )
 
 
 @router.post("/upload", response_model=RecordingResponse, status_code=status.HTTP_201_CREATED)

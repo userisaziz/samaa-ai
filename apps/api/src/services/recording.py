@@ -1,3 +1,4 @@
+import math
 import uuid
 from collections import Counter
 
@@ -9,6 +10,44 @@ from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
 from src.models.transcript import TranscriptSegment
 from src.schemas.recording import RecordingResponse, RecordingSummaryResponse
+
+
+async def list_recordings(
+    db: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+    status: str | None = None,
+    salesperson_id: str | None = None,
+) -> dict:
+    """List recordings with pagination and optional filters."""
+    query = select(Recording)
+    count_query = select(func.count(Recording.id))
+
+    if status:
+        query = query.where(Recording.status == RecordingStatus(status))
+        count_query = count_query.where(Recording.status == RecordingStatus(status))
+    if salesperson_id:
+        query = query.where(Recording.salesperson_id == uuid.UUID(salesperson_id))
+        count_query = count_query.where(Recording.salesperson_id == uuid.UUID(salesperson_id))
+
+    # Total count
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    total_pages = max(1, math.ceil(total / page_size))
+
+    # Paginated results
+    query = query.order_by(Recording.uploaded_at.desc())
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    items = list(result.scalars().all())
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 async def get_recording(db: AsyncSession, recording_id: str) -> Recording | None:

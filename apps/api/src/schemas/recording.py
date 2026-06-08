@@ -58,3 +58,12 @@ class RecordingSummaryResponse(BaseModel):
     missed_opportunities: int = 0
     outcomes: dict = {}
     avg_confidence: float | None = None
+
+
+class PaginatedRecordingsResponse(BaseModel):
+    """Paginated list of recordings."""
+    items: list[RecordingResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
