@@ -1,0 +1,211 @@
+// Shared TypeScript types matching backend Pydantic schemas
+
+import type { Role, RecordingStatus, Outcome } from "./constants";
+
+// --- Auth ---
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+}
+
+export interface UserResponse {
+  id: string;
+  email: string;
+  full_name: string;
+  role: Role;
+  brand_id: string | null;
+  store_id: string | null;
+}
+
+export interface LoginResponse extends TokenResponse {
+  user: UserResponse;
+}
+
+// --- Brand ---
+export interface Brand {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateBrandRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateBrandRequest {
+  name?: string;
+  description?: string;
+}
+
+// --- Store ---
+export interface Store {
+  id: string;
+  brand_id: string;
+  name: string;
+  location: string | null;
+  working_hours: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateStoreRequest {
+  name: string;
+  brand_id: string;
+  location?: string;
+  working_hours?: Record<string, unknown>;
+}
+
+// --- Salesperson ---
+export interface Salesperson {
+  id: string;
+  store_id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  shift: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSalespersonRequest {
+  store_id: string;
+  name: string;
+  email?: string;
+  role?: string;
+  shift?: string;
+}
+
+export interface SalespersonPerformance {
+  salesperson_id: string;
+  total_conversations: number;
+  avg_greeting_score: number | null;
+  avg_discovery_score: number | null;
+  avg_product_knowledge_score: number | null;
+  avg_objection_handling_score: number | null;
+  avg_closing_score: number | null;
+  avg_overall_score: number | null;
+  conversion_rate: number | null;
+}
+
+// --- Recording ---
+export interface Recording {
+  id: string;
+  salesperson_id: string;
+  file_url: string;
+  file_size: number | null;
+  duration_seconds: number | null;
+  format: string;
+  status: RecordingStatus;
+  error_message: string | null;
+  uploaded_at: string;
+  processed_at: string | null;
+}
+
+export interface RecordingStatusResponse {
+  id: string;
+  status: RecordingStatus;
+  error_message: string | null;
+}
+
+// --- Transcript ---
+export interface TranscriptSegment {
+  id: string;
+  recording_id: string;
+  speaker_label: string;
+  start_time: number;
+  end_time: number;
+  text: string;
+}
+
+// --- Conversation ---
+export interface Conversation {
+  id: string;
+  recording_id: string;
+  start_time: number;
+  end_time: number;
+  segment_count: number;
+  summary: string | null;
+  created_at: string;
+}
+
+export interface ConversationAnalysis {
+  id: string;
+  conversation_id: string;
+  intent: string | null;
+  products: string[];
+  budget: string | null;
+  objections: string[];
+  competitors: string[];
+  closing_attempt: boolean;
+  outcome: Outcome | null;
+  confidence: number | null;
+  scores: PerformanceScores | null;
+  summary: string | null;
+  coaching_notes: string | null;
+  created_at: string;
+}
+
+export interface PerformanceScores {
+  greeting: number;
+  discovery: number;
+  product_knowledge: number;
+  objection_handling: number;
+  closing: number;
+}
+
+// --- Metrics ---
+export interface DailyMetrics {
+  id: string;
+  entity_id: string;
+  entity_type: string;
+  date: string;
+  conversation_count: number;
+  avg_score: number | null;
+  conversion_rate: number | null;
+}
+
+export interface WeeklyMetrics {
+  id: string;
+  entity_id: string;
+  entity_type: string;
+  week_start: string;
+  conversation_count: number;
+  avg_score: number | null;
+  conversion_rate: number | null;
+  top_objection: string | null;
+}
+
+// --- Search ---
+export interface SearchParams {
+  q: string;
+  date_from?: string;
+  date_to?: string;
+  store_id?: string;
+  salesperson_id?: string;
+  outcome?: Outcome;
+}
+
+export interface SearchResult {
+  conversation: Conversation;
+  analysis: ConversationAnalysis | null;
+  relevant_segments: TranscriptSegment[];
+  similarity_score: number;
+}
+
+// --- Paginated Response ---
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
