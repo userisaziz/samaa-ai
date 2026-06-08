@@ -116,6 +116,18 @@ export interface RecordingStatusResponse {
   error_message: string | null;
 }
 
+export interface RecordingSummaryResponse {
+  id: string;
+  status: string;
+  duration_seconds: number | null;
+  total_conversations: number;
+  top_intent: string | null;
+  top_objection: string | null;
+  missed_opportunities: number;
+  outcomes: Record<string, number>;
+  avg_confidence: number | null;
+}
+
 // --- Transcript ---
 export interface TranscriptSegment {
   id: string;

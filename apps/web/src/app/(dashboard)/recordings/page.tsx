@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mic, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Mic, ChevronLeft, ChevronRight, RefreshCw, Eye } from "lucide-react";
+import Link from "next/link";
 
 const STATUSES = [
   { value: "ALL", label: "All Statuses" },
@@ -160,18 +161,28 @@ export default function RecordingsPage() {
                         <StatusBadge status={rec.status} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (rec.status === "FAILED" || rec.status === "UPLOADED") {
-                              api.post(`/recordings/${rec.id}/reprocess`).then(() => refetch());
-                            }
-                          }}
-                          disabled={rec.status === "COMPLETED"}
-                        >
-                          {rec.status === "COMPLETED" ? "View" : "Reprocess"}
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {rec.status === "COMPLETED" && (
+                            <Link href={`/recordings/${rec.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="mr-1 h-4 w-4" />
+                                View
+                              </Button>
+                            </Link>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (rec.status === "FAILED" || rec.status === "UPLOADED") {
+                                api.post(`/recordings/${rec.id}/reprocess`).then(() => refetch());
+                              }
+                            }}
+                            disabled={rec.status === "COMPLETED"}
+                          >
+                            {rec.status === "COMPLETED" ? "Done" : "Reprocess"}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
