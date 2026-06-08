@@ -14,20 +14,54 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 SILENCE_GAP_THRESHOLD = 30.0  # seconds — gap > 30s = conversation boundary
+MEDIUM_GAP_THRESHOLD = 10.0  # seconds — gap > 10s + question = likely new conversation
 MIN_CONVERSATION_DURATION = 10.0  # seconds — ignore segments shorter than 10s
 MIN_SEGMENTS_PER_CONVERSATION = 2  # minimum transcript segments in a conversation
 
-# Greeting / farewell patterns for detection
+# ---------------------------------------------------------------------------
+# Greeting patterns — multilingual (English, Arabic, Hindi)
+# ---------------------------------------------------------------------------
 GREETING_PATTERNS = [
+    # English
     r"\b(welcome|hello|hi|good\s*(morning|afternoon|evening)|hey|greetings)\b",
     r"\b(how\s*can\s*i\s*help|what\s*can\s*i\s*do|how\s*may\s*i\s*assist)\b",
     r"\b(come\s*in|step\s*right\s*in|take\s*a\s*look)\b",
+    # Arabic — مرحبا، أهلا، السلام عليكم، هلا
+    r"(\u0645\u0631\u062d\u0628\u0627|\u0623\u0647\u0644\u0627|\u0627\u0644\u0633\u0644\u0627\u0645\s*\u0639\u0644\u064a\u0643|\u0647\u0644\u0627|\u0635\u0628\u0627\u062d\s*(\u0627\u0644\u062e\u064a\u0631|\u0627\u0644\u0646\u0648\u0631)|\u0645\u0633\u0627\u0621\s*(\u0627\u0644\u062e\u064a\u0631|\u0627\u0644\u0646\u0648\u0631))",
+    # Arabic — how can I help (كيف أقدر أساعدك، شلون أقدر أساعدك)
+    r"(\u0643\u064a\u0641\s*(\u0623\u0642\u062f\u0631|\u0627\u0642\u062f\u0631)\s*\u0623\u0633\u0627\u0639\u062f|\u0634\u0644\u0648\u0646\s*\u0623\u0642\u062f\u0631\s*\u0623\u0633\u0627\u0639\u062f|\u0628\u062d\u0627\u062c\u062a\u0643)",
+    # Hindi — नमस्ते, नमस्कार, स्वागत, आइए
+    r"(\u0928\u092e\u0938\u094d\u0924\u0947|\u0928\u092e\u0938\u094d\u0915\u093e\u0930|\u0938\u094d\u0935\u093e\u0917\u0924|\u0906\u0907\u090f|\u0939\u0947\u0932\u094b|\u0915\u094d\u092f\u093e\s*\u0939\u093e\u0932\s*\u0939\u0948)",
+    # Hindi — how can I help (मैं कैसे मदद करूं, बताइए)
+    r"(\u092e\u0948\u0902\s*\u0915\u0948\u0938\u0947\s*\u092e\u0926\u0926|\u092c\u0924\u093e\u0907\u090f|\u0915\u094d\u092f\u093e\s*\u0938\u0947\u0935\u093e\s*\u0915\u0930\u0942\u0902)",
 ]
 
+# ---------------------------------------------------------------------------
+# Farewell patterns — multilingual
+# ---------------------------------------------------------------------------
 FAREWELL_PATTERNS = [
+    # English
     r"\b(goodbye|bye|see\s*you|thanks?\s*(for|for\s*coming)|have\s*a\s*(good|nice|great))\b",
     r"\b(take\s*care|come\s*back|have\s*a\s*nice\s*day)\b",
     r"\b(that.s\s*all|all\s*set|we.re\s*done)\b",
+    # Arabic — مع السلامة، وداعا، شكرا، الله يعطيك العافية
+    r"(\u0645\u0639\s*\u0627\u0644\u0633\u0644\u0627\u0645\u0629|\u0648\u062f\u0627\u0639\u0627|\u0625\u0644\u0649\s*\u0627\u0644\u0644\u0642\u0627\u0621|\u0627\u0644\u0644\u0647\s*\u064a\u0639\u0637\u064a\u0643\s*\u0627\u0644\u0639\u0627\u0641\u064a\u0629|\u062a\u0633\u0644\u0645|\u0645\u0646\u0648\u0631\u064a\u0646)",
+    # Hindi — अलविदा, धन्यवाद, शुक्रिया, फिर मिलेंगे
+    r"(\u0905\u0932\u0935\u093f\u0926\u093e|\u0927\u0928\u094d\u092f\u0935\u093e\u0926|\u0936\u0941\u0915\u094d\u0930\u093f\u092f\u093e|\u092b\u093f\u0930\s*\u092e\u093f\u0932\u0947\u0902\u0917\u0947|\u0906\u092a\u0915\u093e\s*\u0926\u093f\u0928\s*\u0936\u0941\u092d\))",
+]
+
+# ---------------------------------------------------------------------------
+# Direct question patterns — signals new conversation even without greeting
+# Used with medium silence gaps to detect "customer just starts asking"
+# ---------------------------------------------------------------------------
+DIRECT_QUESTION_PATTERNS = [
+    # English — price/availability/direction questions
+    r"\b(how\s*much|how\s*many|what\s*price|what.s\s*the\s*price|do\s*you\s*have|where\s*(is|are)\s*the|can\s*i\s*(get|see|try|find)|i['']?\s*(want|need|m\s+looking|am\s+looking|i\s+searching))\b",
+    r"\b(what\s*kinds?\s*of|which\s*one|is\s*there\s*any|are\s*you\s*selling|do\s*you\s*carry)\b",
+    # Arabic — بكم، كم السعر، عندك، وين، أبي، بغيت، هل في
+    r"(\u0628\u0643\u0645|\u0643\u0645\s*\u0627\u0644\u0633\u0639\u0631|\u0639\u0646\u062f\u0643|\u0648\u064a\u0646|\u0623\u0628\u064a|\u0628\u063a\u064a\u062a|\u0647\u0644\s*\u0641\u064a|\u0623\u0646\u0627\s*\u0623\u0628\u062d\u062b|\u0639\u0646\u062f\u0643\u0645)",
+    # Hindi — कितना, क्या है, कहाँ, मुझे चाहिए, आपके पास
+    r"(\u0915\u093f\u0924\u0928\u093e|\u0915\u093f\u0924\u0928\u093e|\u0915\u094d\u092f\u093e\s*\u0939\u0948|\u0915\u0939\u093e\u0901|\u092e\u0941\u091d\u0947\s*\u091a\u093e\u0939\u093f\u090f|\u0906\u092a\u0915\u0947\s*\u092a\u093e\u0938|\u092f\u0947\s*\u0915\u0939\u093e\u0901\s*\u0939\u0948|\u0915\u094d\u092f\u093e\s*\u0906\u092a\u0915\u0947)",
 ]
 
 
@@ -85,8 +119,10 @@ def _find_boundaries(
 
     A boundary exists between segment[i] and segment[i+1] when:
     1. There's a silence gap > 30s between them
-    2. segment[i+1] starts with a greeting phrase
-    3. segment[i] ends with a farewell phrase
+    2. segment[i+1] starts with a greeting phrase (any language)
+    3. segment[i] ends with a farewell phrase (any language)
+    4. Medium gap (10-30s) + next segment is a direct question (no-greeting start)
+    5. Speaker change after medium gap (new customer walk-in)
     """
     boundaries = []
 
@@ -97,22 +133,45 @@ def _find_boundaries(
         gap = next_seg["start"] - current["end"]
         is_boundary = False
 
-        # Rule 1: Large silence gap
+        # Rule 1: Large silence gap — always a boundary
         if gap >= SILENCE_GAP_THRESHOLD:
             is_boundary = True
             logger.debug(f"  Boundary at segment {i}: silence gap {gap:.1f}s")
 
-        # Rule 2: Next segment starts with a greeting
+        # Rule 2: Next segment starts with a greeting (EN/AR/HI)
         if _text_matches_patterns(next_seg.get("text", ""), GREETING_PATTERNS):
             is_boundary = True
             logger.debug(f"  Boundary at segment {i}: greeting detected")
 
-        # Rule 3: Current segment ends with a farewell
+        # Rule 3: Current segment ends with a farewell (EN/AR/HI)
         if _text_matches_patterns(current.get("text", ""), FAREWELL_PATTERNS):
             is_boundary = True
             logger.debug(f"  Boundary at segment {i}: farewell detected")
 
-        # Rule 4: Silence gap from preprocessing overlaps this position
+        # Rule 4: Medium gap + direct question — customer starts asking without greeting
+        if (
+            not is_boundary
+            and gap >= MEDIUM_GAP_THRESHOLD
+            and _text_matches_patterns(next_seg.get("text", ""), DIRECT_QUESTION_PATTERNS)
+        ):
+            is_boundary = True
+            logger.debug(
+                f"  Boundary at segment {i}: medium gap {gap:.1f}s + direct question"
+            )
+
+        # Rule 5: Speaker change after medium gap — new customer walk-in
+        if (
+            not is_boundary
+            and gap >= MEDIUM_GAP_THRESHOLD
+            and current.get("speaker") != next_seg.get("speaker")
+            and _is_customer_speaker(next_seg.get("speaker", ""), segments, i + 1)
+        ):
+            is_boundary = True
+            logger.debug(
+                f"  Boundary at segment {i}: speaker change after {gap:.1f}s gap"
+            )
+
+        # Rule 6: Silence gap from preprocessing overlaps this position
         for gap_start, gap_end in silence_gaps:
             if current["end"] >= gap_start and next_seg["start"] <= gap_end:
                 gap_duration = gap_end - gap_start
@@ -187,6 +246,37 @@ def _text_matches_patterns(text: str, patterns: list[str]) -> bool:
     """Check if text matches any of the given regex patterns (case-insensitive)."""
     text_lower = text.lower().strip()
     for pattern in patterns:
-        if re.search(pattern, text_lower):
+        if re.search(pattern, text_lower, re.IGNORECASE):
             return True
     return False
+
+
+def _is_customer_speaker(
+    speaker: str,
+    segments: list[dict],
+    from_index: int,
+) -> bool:
+    """Heuristic: determine if a speaker is likely the customer (not salesperson).
+
+    In retail, the salesperson typically speaks first and more often in short bursts.
+    The customer tends to speak in shorter total segments but asks questions.
+    For simplicity, we check if this speaker is NOT the most frequent speaker
+    in the first few segments (salesperson usually initiates).
+    """
+    if not speaker:
+        return False
+
+    # Look at first 10 segments to identify the salesperson (most frequent speaker)
+    sample = segments[: min(10, len(segments))]
+    speaker_counts: dict[str, int] = {}
+    for seg in sample:
+        sp = seg.get("speaker", "")
+        if sp:
+            speaker_counts[sp] = speaker_counts.get(sp, 0) + 1
+
+    if not speaker_counts:
+        return False
+
+    # The most frequent speaker in opening segments is likely the salesperson
+    salesperson = max(speaker_counts, key=speaker_counts.get)  # type: ignore[arg-type]
+    return speaker != salesperson

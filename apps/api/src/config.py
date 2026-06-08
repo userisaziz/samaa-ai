@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     nvidia_stt_model: str = "nvidia/parakeet-ctc-1.1b"
     nvidia_diarization_model: str = "nvidia/streusand-rnnt"
     nvidia_llm_model: str = "meta/llama-3.3-70b-instruct"
+    nvidia_embedding_model: str = "nvidia/llama-3.2-nv-embedqa-1b-v2"
     nvidia_timeout: int = 300  # 5 minutes per API call
 
     # App

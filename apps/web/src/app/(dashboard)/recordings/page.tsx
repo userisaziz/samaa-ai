@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mic, ChevronLeft, ChevronRight, RefreshCw, Eye } from "lucide-react";
+import { Mic, ChevronLeft, ChevronRight, RefreshCw, Eye, Download } from "lucide-react";
 import Link from "next/link";
 
 const STATUSES = [
@@ -98,10 +98,23 @@ export default function RecordingsPage() {
             {data?.total ?? 0} total recordings
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const url = `${process.env.NEXT_PUBLIC_API_URL}/recordings/export/recordings`;
+              window.open(url, "_blank");
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}

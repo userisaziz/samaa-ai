@@ -11,6 +11,7 @@ import {
   LogOut,
   Headphones,
   GraduationCap,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,11 @@ const navItems: NavItem[] = [
     label: "Recordings",
     href: "/recordings",
     icon: Mic,
+  },
+  {
+    label: "Search",
+    href: "/search",
+    icon: Search,
   },
   {
     label: "Coaching",

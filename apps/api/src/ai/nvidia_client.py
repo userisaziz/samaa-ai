@@ -228,6 +228,34 @@ class NVIDIAClient:
             raise NVIDIAAPIError("No choices in chat completion response")
         return choices[0].get("message", {}).get("content", "")
 
+    def embeddings(
+        self,
+        input_texts: list[str],
+        model: str | None = None,
+    ) -> list[list[float]]:
+        """Generate embeddings via NVIDIA NIM /embeddings endpoint.
+
+        Args:
+            input_texts: List of text strings to embed
+            model: Model override (defaults to settings.nvidia_embedding_model)
+
+        Returns:
+            List of embedding vectors (list of float lists)
+        """
+        payload = {
+            "model": model or settings.nvidia_embedding_model,
+            "input": input_texts,
+            "input_type": "query",
+            "encoding_format": "float",
+        }
+        response = self.post_json("/embeddings", payload)
+        data = response.get("data", [])
+        if not data:
+            raise NVIDIAAPIError("No data in embeddings response")
+        # Sort by index to preserve order
+        data.sort(key=lambda x: x.get("index", 0))
+        return [item["embedding"] for item in data]
+
 
 # Singleton client instance
 nvidia_client = NVIDIAClient()

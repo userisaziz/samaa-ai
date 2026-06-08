@@ -1,5 +1,7 @@
 import uuid
 
+from collections import Counter
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,10 +81,61 @@ async def get_store_metrics(db: AsyncSession, store_id: str) -> StoreMetricsResp
     )
     total_conversations = conv_count.scalar() or 0
 
+    # Average performance score
+    sp_ids_result = await db.execute(
+        select(Salesperson.id).where(Salesperson.store_id == sid)
+    )
+    sp_ids = [row[0] for row in sp_ids_result.all()]
+
+    avg_score = None
+    conversion_rate = None
+    top_objection = None
+
+    if sp_ids:
+        rec_ids_q = select(Recording.id).where(Recording.salesperson_id.in_(sp_ids))
+
+        # Avg confidence as proxy for performance score
+        avg_result = await db.execute(
+            select(func.avg(ConversationAnalysis.confidence)).join(Conversation).where(
+                Conversation.recording_id.in_(rec_ids_q),
+                ConversationAnalysis.confidence.isnot(None),
+            )
+        )
+        avg_val = avg_result.scalar()
+        avg_score = round(float(avg_val), 1) if avg_val else None
+
+        # Conversion rate
+        if total_conversations > 0:
+            sale_result = await db.execute(
+                select(func.count()).select_from(ConversationAnalysis).join(Conversation).where(
+                    Conversation.recording_id.in_(rec_ids_q),
+                    ConversationAnalysis.outcome == "SALE_MADE",
+                )
+            )
+            sale_count = sale_result.scalar() or 0
+            conversion_rate = round(sale_count / total_conversations * 100, 1)
+
+        # Top objection
+        objections_result = await db.execute(
+            select(ConversationAnalysis.objections).join(Conversation).where(
+                Conversation.recording_id.in_(rec_ids_q),
+                ConversationAnalysis.objections.isnot(None),
+            )
+        )
+        all_objections: list[str] = []
+        for row in objections_result.all():
+            if row[0]:
+                all_objections.extend(row[0])
+        if all_objections:
+            top_objection = Counter(all_objections).most_common(1)[0][0]
+
     return StoreMetricsResponse(
         store_id=store_id,
         name=store.name,
         total_salespeople=total_salespeople,
         total_recordings=total_recordings,
         total_conversations=total_conversations,
+        avg_performance_score=avg_score,
+        conversion_rate=conversion_rate,
+        top_objection=top_objection,
     )

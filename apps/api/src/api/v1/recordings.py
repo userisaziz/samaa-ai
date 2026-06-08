@@ -1,7 +1,8 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import require_salesperson_up
@@ -24,6 +25,7 @@ from src.services.recording import (
     get_transcript,
     list_recordings,
 )
+from src.services.export import export_recordings_csv, export_conversations_csv
 from src.storage.local import get_storage
 from src.workers.pipeline import start_processing_pipeline
 
@@ -46,6 +48,40 @@ async def list_recordings_endpoint(
 ):
     return await list_recordings(
         db, page=page, page_size=page_size, status=status, salesperson_id=salesperson_id
+    )
+
+
+@router.get("/export/recordings")
+async def export_recordings(
+    salesperson_id: str | None = None,
+    status_filter: str | None = Query(None, alias="status"),
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    """Export recordings as CSV."""
+    csv_data = await export_recordings_csv(db, salesperson_id=salesperson_id, status=status_filter)
+    return StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=recordings.csv"},
+    )
+
+
+@router.get("/export/conversations")
+async def export_conversations(
+    recording_id: str | None = None,
+    salesperson_id: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    """Export conversation analyses as CSV."""
+    csv_data = await export_conversations_csv(
+        db, recording_id=recording_id, salesperson_id=salesperson_id
+    )
+    return StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=conversations.csv"},
     )
 
 
