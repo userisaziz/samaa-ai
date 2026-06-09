@@ -342,9 +342,13 @@ Sprint 1 (Backend)
                 └── Sprint 5 (Detail Experience)
                               │
                               └── Sprint 6 (Intelligence Layer)
+                │
+                └── Sprint 7 (Custom Model Training) ← Future Phase
 ```
 
 Sprints 2 and 4 can partially overlap — frontend scaffolding (Task 4.1-4.2) can begin while AI pipeline is being built, using mock data.
+
+Sprint 7 is a **future phase** — begins after collecting sufficient labeled retail audio data (Arabic/Hindi/English). Depends on all prior sprints being complete.
 
 ---
 
@@ -373,3 +377,75 @@ Sprints 2 and 4 can partially overlap — frontend scaffolding (Task 4.1-4.2) ca
 - Role-based access enforced at route level
 - Data scoping enforced at service level (users only see their brand/store data)
 - File uploads validated (format, MIME type, size, duration)
+
+---
+
+## Sprint 7: Custom Model Training (Future Phase)
+
+**Goal:** Train domain-specific ASR and diarization models on retail store audio (English, Arabic, Hindi) to replace hosted NVIDIA APIs with self-hosted models for better accuracy and cost control.  
+**Prerequisites:** Minimum 500+ hours of labeled retail audio collected from production pipeline.  
+**Definition of Done:** Custom ASR model achieves lower WER than Parakeet on retail test set; custom diarization model achieves lower DER than Streusand on retail test set; pipeline seamlessly switches to self-hosted models.
+
+### Task 7.1: Data Collection & Annotation Pipeline
+- Build data collection pipeline: automatically save preprocessed audio + transcripts from production runs
+- Implement quality filtering: exclude low-confidence transcripts (< 85%), corrupt audio, too-short segments
+- Build annotation review UI (optional): allow humans to correct transcripts for training ground truth
+- Store training dataset with metadata: language, duration, speaker count, store, quality score
+- **Verify:** Production audio flows into training dataset automatically, quality filters work
+
+### Task 7.2: Speech Data Processing & Dataset Preparation
+- Use NVIDIA Speech Data Processor for large-scale audio cleaning
+- Resample, normalize, and segment audio into training-ready clips
+- Split dataset: train (80%), validation (10%), test (10%) — stratified by language and store
+- Generate manifests in NeMo format (audio_filepath, text, duration, speaker)
+- Handle code-switching and mixed-language segments (Gulf Arabic + English, Hindi + English)
+- **Verify:** Training manifests generated, dataset balanced across languages
+
+### Task 7.3: Speech Self-Supervised Learning (SSL) Pre-training
+- Use NeMo Speech SSL to pre-train base model on unlabeled retail audio
+- Leverage all collected audio (including unlabeled) for self-supervised representation learning
+- This creates a strong foundation model that understands retail audio characteristics (background noise, acoustics, dialect patterns)
+- **Verify:** SSL pre-training completes, loss converges, representations capture speech patterns
+
+### Task 7.4: ASR Model Fine-tuning
+- Fine-tune SSL pre-trained model on labeled transcript data using CTC/RNNT objective
+- Start from NVIDIA Canary or Parakeet weights as initialization (transfer learning)
+- Train separately for each language, then create multilingual final model
+- Use NeMo Forced Aligner to generate word-level alignments for training data
+- **Verify:** Fine-tuned model produces transcripts, WER measured on test set
+
+### Task 7.5: Diarization Model Fine-tuning
+- Fine-tune speaker diarization model on retail audio with known speaker segments
+- Train on retail-specific scenarios: 2-4 speakers, store acoustics, overlapping speech
+- Use CTC-Segmentation tool to create training clips from long recordings
+- **Verify:** Fine-tuned diarization model produces speaker segments, DER measured on test set
+
+### Task 7.6: Model Evaluation & Comparison
+- Use ASR Evaluator to benchmark custom model vs. Parakeet on retail test set
+- Use Comparison Tool for side-by-side analysis of transcription differences
+- Measure: WER (word error rate), CER (character error rate), processing speed
+- Measure diarization: DER (diarization error rate), speaker confusion
+- Test specifically on Arabic and Hindi audio quality
+- **Verify:** Custom model meets or exceeds hosted API accuracy on retail domain
+
+### Task 7.7: Model Serving & Pipeline Integration
+- Deploy custom models via NVIDIA Triton Inference Server (or NeMo inference scripts)
+- Update `ai/stt.py` to support both NIM API and self-hosted model (feature flag)
+- Update `ai/diarizer.py` to support both NIM API and self-hosted model (feature flag)
+- Add model version tracking: which model version processed each recording
+- Implement A/B testing: route percentage of recordings to custom model vs. hosted API
+- **Verify:** Pipeline runs with self-hosted models, results match or exceed hosted API quality
+
+### Task 7.8: Continuous Training Loop
+- Implement automated retraining trigger: when N hours of new labeled data accumulated
+- Build model registry: track versions, metrics, deployment status
+- Add rollback capability: if new model performs worse, revert to previous version
+- Monitor production quality metrics: track WER/DER trends over time
+- **Verify:** New data triggers retraining, model registry tracks versions, rollback works
+
+### Task 7.9: Infrastructure Setup
+- GPU infrastructure for training (cloud GPU instances or on-premise)
+- Model storage: versioned model artifacts (MLflow or simple S3/R2 bucket)
+- Training pipeline orchestration (can extend Celery or use separate training scheduler)
+- Monitoring: GPU utilization, training loss, evaluation metrics dashboard
+- **Verify:** Training infrastructure provisioned, model artifacts stored and versioned

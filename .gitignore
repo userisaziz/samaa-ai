@@ -47,3 +47,4 @@ apps/api/alembic/versions/*.pyc
 
 # Logs
 *.log
+.logs/
