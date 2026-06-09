@@ -1,0 +1,2 @@
+- Global styles are defined in a dedicated `globals.css` file imported directly into the root layout.
+- Client-side routing logic is encapsulated in the root page component using `useEffect` for hydration and redirection.

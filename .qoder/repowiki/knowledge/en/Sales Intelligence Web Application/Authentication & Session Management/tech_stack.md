@@ -1,0 +1,1 @@
+Zustand for client-side state management; Next.js App Router with client components ("use client"); shared types from `@samaa/shared` package.

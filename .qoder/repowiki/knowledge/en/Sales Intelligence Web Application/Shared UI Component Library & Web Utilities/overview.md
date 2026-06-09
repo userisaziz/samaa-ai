@@ -1,0 +1,1 @@
+Provides reusable Base UI-backed React components, a typed API client with JWT refresh, and shared application providers for the web app.

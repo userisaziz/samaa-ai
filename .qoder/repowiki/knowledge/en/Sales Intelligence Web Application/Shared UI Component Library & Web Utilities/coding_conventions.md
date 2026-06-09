@@ -1,0 +1,4 @@
+- Every UI component imports and uses the cn() utility from @/lib/utils to merge Tailwind classes with component-specific defaults.
+- All UI components set a data-slot attribute (e.g., data-slot="button", data-slot="card") on the root element to enable downstream CSS targeting.
+- Components that support visual variants define them via cva and export both the component and its variants object (e.g., Button and buttonVariants).
+- UI components wrap @base-ui/react primitives or native HTML elements, forwarding all props via spread and accepting an optional className override.

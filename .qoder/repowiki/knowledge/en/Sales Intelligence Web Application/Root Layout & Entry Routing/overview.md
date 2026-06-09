@@ -1,0 +1,1 @@
+Defines the application's root HTML structure, global styling, and initial role-based routing logic.

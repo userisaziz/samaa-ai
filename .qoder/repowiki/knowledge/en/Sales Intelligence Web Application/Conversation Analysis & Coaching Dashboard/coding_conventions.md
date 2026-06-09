@@ -1,0 +1,5 @@
+- All page components and feature components use the "use client" directive at the top of the file.
+- Time formatting uses a consistent MM:SS pattern via a local formatTime helper that pads seconds with padStart(2, "0").
+- Speaker labels are color-coded using a shared SPEAKER_COLORS record mapping SPEAKER_XX keys to Tailwind text color classes.
+- Conversation outcomes (SALE_MADE, LOST, FOLLOW_UP_NEEDED) are rendered with a consistent OUTCOME_CONFIG record providing label, icon component, and CSS class.
+- API data fetching follows a useQuery pattern with queryKey arrays containing endpoint identifiers and dependent IDs, plus enabled guards for conditional fetching.

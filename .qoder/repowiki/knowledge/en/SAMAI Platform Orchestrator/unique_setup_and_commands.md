@@ -1,0 +1,1 @@
+Run `./start_servers.sh` to boot the entire platform (DB, Redis, API, Worker, Web) in one command; use `npm run dev` for Turborepo-managed parallel development tasks.

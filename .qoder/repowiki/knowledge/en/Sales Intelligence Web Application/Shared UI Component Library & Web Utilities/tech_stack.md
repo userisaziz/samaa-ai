@@ -1,0 +1,1 @@
+Uses @base-ui/react for headless UI primitives, class-variance-authority (cva) for variant definitions, clsx + tailwind-merge via the cn() utility for conditional Tailwind class composition, and @tanstack/react-query for server-state management.

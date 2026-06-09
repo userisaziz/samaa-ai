@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: ""
+title: SAMAI Platform Orchestrator
+scope:
+    - .env
+    - .env.example
+    - .gitignore
+    - README.md
+    - docker-compose.yml
+    - package-lock.json
+    - package.json
+    - start_servers.sh
+    - turbo.json
+source_files: []
+depends_on: []
+related_to: []

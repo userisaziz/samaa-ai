@@ -1,0 +1,5 @@
+- Three route pages: recordings list (page.tsx), recording detail ([id]/page.tsx), and coaching dashboard (coaching/page.tsx), all using Next.js App Router with "use client" directive.
+- Four feature components under components/features/: TranscriptViewer renders time-stamped speaker segments; ConversationTimeline visualizes conversation blocks on a timeline bar; AIInsightsPanel displays per-conversation analysis cards; ConversationDrawer opens a side-sheet with detailed analysis and filtered transcript.
+- Data fetching uses @tanstack/react-query with conditional refetchInterval for processing statuses; API calls go through a shared api client to /recordings, /conversations, and /salespeople endpoints.
+- Shared types imported from @samaa/shared (Recording, Conversation, ConversationAnalysis, TranscriptSegment, SalespersonPerformance) define the domain model across UI boundaries.
+- Coaching page aggregates skill scores into radar/line charts via recharts, computes weakest skills, and generates static recommendation tips from hardcoded SKILL_TIPS mapping.

@@ -1,0 +1,4 @@
+- **Environment**: Requires a `.env` file for `DATABASE_URL`, `REDIS_URL`, and `NVIDIA_API_KEY`.
+- **Database**: Run `alembic upgrade head` to apply schema migrations.
+- **Workers**: Start the async worker pool with `celery -A src.workers.celery_app worker --loglevel=info`.
+- **Seeding**: Use `python scripts/seed.py` to populate initial reference data.

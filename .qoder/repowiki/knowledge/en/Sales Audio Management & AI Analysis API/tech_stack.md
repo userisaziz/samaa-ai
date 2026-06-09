@@ -1,0 +1,6 @@
+- **Core**: FastAPI, Uvicorn, Pydantic v2.
+- **Data**: PostgreSQL (asyncpg), SQLAlchemy 2.0, Alembic, pgvector.
+- **Workers**: Celery, Redis.
+- **AI**: NVIDIA NIM APIs (Parakeet STT, NeMo Diarization, Llama 3.3 LLM).
+- **Audio**: Pydub, NumPy.
+- **Auth**: Python-Jose (JWT), Passlib (bcrypt).

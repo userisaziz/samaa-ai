@@ -1,0 +1,1 @@
+Provides the authenticated dashboard shell with role-based sidebar navigation and reusable presentational components for KPIs, status indicators, and loading states.

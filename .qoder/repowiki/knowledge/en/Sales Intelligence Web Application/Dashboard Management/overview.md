@@ -1,0 +1,1 @@
+Provides dashboard views for brand, store, and salesperson performance analytics with KPI tracking and data visualization.

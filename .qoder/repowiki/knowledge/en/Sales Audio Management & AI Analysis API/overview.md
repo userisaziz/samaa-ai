@@ -1,0 +1,1 @@
+A FastAPI-based backend that manages retail sales audio recordings and orchestrates an asynchronous AI pipeline for transcription, diarization, and conversational analytics.

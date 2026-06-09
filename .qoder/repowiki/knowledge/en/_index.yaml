@@ -1,0 +1,148 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+exported_at: "2026-06-09T10:49:12Z"
+modules:
+    "":
+        dir_name: SAMAI Platform Orchestrator
+        title: SAMAI Platform Orchestrator
+        scope:
+            - .env
+            - .env.example
+            - .gitignore
+            - README.md
+            - docker-compose.yml
+            - package-lock.json
+            - package.json
+            - start_servers.sh
+            - turbo.json
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    api_service:
+        dir_name: Sales Audio Management & AI Analysis API
+        title: Sales Audio Management & AI Analysis API
+        scope:
+            - apps/api/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/dashboard_conversations
+            - path: web_app/dashboard_management
+            - path: web_app/auth
+            - path: shared_package
+    shared_package:
+        dir_name: Shared API Types and Constants
+        title: Shared API Types and Constants
+        scope:
+            - packages/shared/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: api_service
+    web_app:
+        dir_name: Sales Intelligence Web Application
+        title: Sales Intelligence Web Application
+        scope:
+            - apps/web/
+        source_files: []
+        children:
+            - web_app/dashboard_layout
+            - web_app/auth
+            - web_app/dashboard_conversations
+            - web_app/dashboard_management
+            - web_app/shared_ui_lib
+            - web_app/app_shell
+        depends_on: []
+        related_to: []
+    web_app/app_shell:
+        dir_name: Root Layout & Entry Routing
+        title: Root Layout & Entry Routing
+        scope:
+            - apps/web/src/app/layout.tsx
+            - apps/web/src/app/page.tsx
+            - apps/web/src/app/globals.css
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/auth
+            - path: web_app/dashboard_management
+            - path: web_app/dashboard_conversations
+    web_app/auth:
+        dir_name: Authentication & Session Management
+        title: Authentication & Session Management
+        scope:
+            - apps/web/src/app/(auth)/
+            - apps/web/src/components/auth-guard.tsx
+            - apps/web/src/store/auth.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/app_shell
+            - path: api_service
+    web_app/dashboard_conversations:
+        dir_name: Conversation Analysis & Coaching Dashboard
+        title: Conversation Analysis & Coaching Dashboard
+        scope:
+            - apps/web/src/app/(dashboard)/recordings/
+            - apps/web/src/app/(dashboard)/coaching/
+            - apps/web/src/components/features/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/dashboard_management
+            - path: api_service
+            - path: web_app/app_shell
+            - path: web_app/dashboard_layout
+    web_app/dashboard_layout:
+        dir_name: Dashboard Layout & UI Components
+        title: Dashboard Layout & UI Components
+        scope:
+            - apps/web/src/app/(dashboard)/layout.tsx
+            - apps/web/src/components/layout/
+            - apps/web/src/components/kpi-card.tsx
+            - apps/web/src/components/loading-skeleton.tsx
+            - apps/web/src/components/status-badge.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/dashboard_management
+            - path: web_app/dashboard_conversations
+    web_app/dashboard_management:
+        dir_name: Dashboard Management
+        title: Dashboard Management
+        scope:
+            - apps/web/src/app/(dashboard)/brand/
+            - apps/web/src/app/(dashboard)/search/
+            - apps/web/src/app/(dashboard)/salespeople/
+            - apps/web/src/app/(dashboard)/salesperson/
+            - apps/web/src/app/(dashboard)/stores/
+            - apps/web/src/app/(dashboard)/store/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: web_app/dashboard_conversations
+            - path: api_service
+            - path: web_app/app_shell
+            - path: web_app/dashboard_layout
+    web_app/shared_ui_lib:
+        dir_name: Shared UI Component Library & Web Utilities
+        title: Shared UI Component Library & Web Utilities
+        scope:
+            - apps/web/src/components/ui/
+            - apps/web/src/lib/
+            - apps/web/src/components/providers.tsx
+            - apps/web/src/middleware.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

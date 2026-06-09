@@ -1,0 +1,1 @@
+Orchestrates a Next.js-based dashboard for retail audio analytics, unifying authentication, role-based navigation, and AI-driven conversation insights through a shared component library.

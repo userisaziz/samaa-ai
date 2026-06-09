@@ -1,0 +1,1 @@
+TypeScript 5.7+ with ES2022 target and bundler module resolution, configured via `tsconfig.json`.

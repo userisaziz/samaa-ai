@@ -1,0 +1,5 @@
+- Uses Next.js App Router with route groups `(dashboard)` to organize six page routes: brand overview, semantic search, salespeople list, individual salesperson detail, stores list, and individual store detail.
+- All pages are client components (`"use client"`) that fetch data via `@tanstack/react-query` using a shared `api` client from `@/lib/api-client`, consuming REST endpoints typed by `@samaa/shared`.
+- Shared UI components (`KPICard`, `Card`, `Table`, `Badge`, `Breadcrumbs`, `StatusBadge`) provide consistent layout patterns across pages.
+- Data aggregation logic (e.g., computing brand/store averages from per-salesperson performance) is performed client-side within page components rather than server-side.
+- Navigation between related entities uses Next.js `Link` components with dynamic route parameters (`[id]`).
