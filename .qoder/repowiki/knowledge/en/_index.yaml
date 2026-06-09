@@ -2,7 +2,7 @@
 schema_version: 1
 locale: en-US
 branch: main
-exported_at: "2026-06-09T10:49:12Z"
+exported_at: "2026-06-09T11:15:28Z"
 modules:
     "":
         dir_name: SAMAI Platform Orchestrator
@@ -51,11 +51,11 @@ modules:
             - apps/web/
         source_files: []
         children:
-            - web_app/dashboard_layout
-            - web_app/auth
             - web_app/dashboard_conversations
             - web_app/dashboard_management
+            - web_app/dashboard_layout
             - web_app/shared_ui_lib
+            - web_app/auth
             - web_app/app_shell
         depends_on: []
         related_to: []
