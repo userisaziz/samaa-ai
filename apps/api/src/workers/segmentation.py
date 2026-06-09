@@ -43,6 +43,25 @@ def _get_labeled_segments_sync(recording_id: str) -> list[dict]:
     return segments
 
 
+def _get_silence_gaps_sync(recording_id: str) -> list[tuple[float, float]]:
+    """Load silence gaps from recording.silence_gaps JSONB field."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from src.models.recording import Recording
+
+    engine = create_engine(settings.database_url_sync)
+    SessionLocal = sessionmaker(bind=engine)
+    with SessionLocal() as session:
+        recording = session.query(Recording).filter(Recording.id == uuid.UUID(recording_id)).first()
+        if recording and recording.silence_gaps:
+            # Convert from list of dicts back to list of tuples
+            gaps = [(g["start"], g["end"]) for g in recording.silence_gaps]
+            engine.dispose()
+            return gaps
+    engine.dispose()
+    return []
+
+
 def _store_conversations_sync(recording_id: str, conversations: list[dict]):
     """Store conversation records in DB."""
     from sqlalchemy import create_engine
@@ -97,8 +116,13 @@ def segment_conversations(self, recording_id: str) -> str:
 
         logger.info(f"[{recording_id}] Segmenting {len(labeled_segments)} transcript segments")
 
+        # Load silence gaps from preprocessing
+        silence_gaps = _get_silence_gaps_sync(recording_id)
+        if silence_gaps:
+            logger.info(f"[{recording_id}] Using {len(silence_gaps)} silence gaps from preprocessing")
+
         # Run segmentation
-        conversations = segment_conversations_ai(labeled_segments)
+        conversations = segment_conversations_ai(labeled_segments, silence_gaps=silence_gaps if silence_gaps else None)
 
         if not conversations:
             logger.warning(f"[{recording_id}] No conversations detected after segmentation")
@@ -115,5 +139,7 @@ def segment_conversations(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Segmentation failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)

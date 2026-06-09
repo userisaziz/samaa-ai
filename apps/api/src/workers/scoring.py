@@ -39,7 +39,7 @@ def _get_conversations_with_segments_sync(recording_id: str) -> list[dict]:
                 session.query(TranscriptSegment)
                 .filter(
                     TranscriptSegment.recording_id == uuid.UUID(recording_id),
-                    TranscriptSegment.start_time >= conv.start_time - 1.0,
+                    TranscriptSegment.start_time >= conv.start_time,  # no lower buffer
                     TranscriptSegment.end_time <= conv.end_time + 1.0,
                 )
                 .order_by(TranscriptSegment.start_time)
@@ -147,14 +147,15 @@ def _update_daily_metrics_sync(recording_id: str):
 
 def _upsert_daily_metrics(session, entity_id, entity_type: str, date_val):
     """Insert or update daily metrics for an entity."""
-    from sqlalchemy import func
+    from sqlalchemy import func, cast, Date
 
-    # Get all conversations for this entity today
+    # Get recordings for this entity ON THE TARGET DATE
     if entity_type == "SALESPERSON":
         from src.models.recording import Recording
         recording_ids = [
             r.id for r in session.query(Recording.id).filter(
-                Recording.salesperson_id == entity_id
+                Recording.salesperson_id == entity_id,
+                cast(Recording.uploaded_at, Date) == date_val,
             ).all()
         ]
     else:
@@ -167,24 +168,36 @@ def _upsert_daily_metrics(session, entity_id, entity_type: str, date_val):
         ]
         recording_ids = [
             r.id for r in session.query(Recording.id).filter(
-                Recording.salesperson_id.in_(sp_ids)
+                Recording.salesperson_id.in_(sp_ids),
+                cast(Recording.uploaded_at, Date) == date_val,
             ).all()
         ]
 
     if not recording_ids:
         return
 
-    # Count conversations and compute avg score
+    # Count conversations
     conv_count = session.query(Conversation).filter(
         Conversation.recording_id.in_(recording_ids)
     ).count()
 
-    # Get average overall score from analyses
-    avg_result = session.query(func.avg(ConversationAnalysis.confidence)).join(
+    # Get average performance scores from the scores JSONB field
+    # (not confidence, which is the AI's self-rating)
+    scored_analyses = session.query(ConversationAnalysis).join(
         Conversation
     ).filter(
-        Conversation.recording_id.in_(recording_ids)
-    ).scalar()
+        Conversation.recording_id.in_(recording_ids),
+        ConversationAnalysis.scores.isnot(None),
+    ).all()
+
+    dimension_avgs = []
+    for a in scored_analyses:
+        if isinstance(a.scores, dict):
+            vals = [v for v in a.scores.values() if v is not None]
+            if vals:
+                dimension_avgs.append(sum(vals) / len(vals))
+
+    avg_score = sum(dimension_avgs) / len(dimension_avgs) if dimension_avgs else None
 
     # Count sales
     sale_count = session.query(ConversationAnalysis).join(
@@ -205,7 +218,7 @@ def _upsert_daily_metrics(session, entity_id, entity_type: str, date_val):
 
     if existing:
         existing.conversation_count = conv_count
-        existing.avg_score = float(avg_result) if avg_result else None
+        existing.avg_score = avg_score
         existing.conversion_rate = round(conversion_rate, 1)
     else:
         dm = DailyMetrics(
@@ -213,7 +226,7 @@ def _upsert_daily_metrics(session, entity_id, entity_type: str, date_val):
             entity_type=entity_type,
             date=date_val,
             conversation_count=conv_count,
-            avg_score=float(avg_result) if avg_result else None,
+            avg_score=avg_score,
             conversion_rate=round(conversion_rate, 1),
         )
         session.add(dm)
@@ -294,5 +307,7 @@ def score_salesperson(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Scoring failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)

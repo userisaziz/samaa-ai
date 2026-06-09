@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from src.ai.analyzer import analyze_conversation as analyze_conversation_ai
+from src.ai.analyzer import MIN_CONFIDENCE_THRESHOLD
 from src.config import settings
 from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import RecordingStatus
@@ -67,7 +68,7 @@ def _get_conversation_segments_sync(conversation_id: str) -> list[dict]:
             session.query(TranscriptSegment)
             .filter(
                 TranscriptSegment.recording_id == recording_id,
-                TranscriptSegment.start_time >= start_time - 1.0,  # small buffer
+                TranscriptSegment.start_time >= start_time,  # no lower buffer to avoid overlap
                 TranscriptSegment.end_time <= end_time + 1.0,
             )
             .order_by(TranscriptSegment.start_time)
@@ -201,6 +202,15 @@ def analyze_conversations(self, recording_id: str) -> str:
                 failed_count += 1
                 continue
 
+            # Check confidence threshold before storing
+            if analysis.get("confidence", 0) < MIN_CONFIDENCE_THRESHOLD:
+                logger.warning(
+                    f"[{recording_id}] Analysis confidence {analysis.get('confidence')}% "
+                    f"below threshold {MIN_CONFIDENCE_THRESHOLD}% — skipping"
+                )
+                failed_count += 1
+                continue
+
             # Store analysis
             _store_analysis_sync(conv_id, analysis)
 
@@ -225,5 +235,7 @@ def analyze_conversations(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Analysis failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)

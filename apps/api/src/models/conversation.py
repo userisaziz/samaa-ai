@@ -40,10 +40,10 @@ class ConversationAnalysis(Base):
         ForeignKey("conversations.id"), unique=True, nullable=False
     )
     intent: Mapped[str | None] = mapped_column(Text, nullable=True)
-    products: Mapped[dict | None] = mapped_column(JSONB, default=list)
+    products: Mapped[list | None] = mapped_column(JSONB, default=lambda: [])
     budget: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    objections: Mapped[dict | None] = mapped_column(JSONB, default=list)
-    competitors: Mapped[dict | None] = mapped_column(JSONB, default=list)
+    objections: Mapped[list | None] = mapped_column(JSONB, default=lambda: [])
+    competitors: Mapped[list | None] = mapped_column(JSONB, default=lambda: [])
     closing_attempt: Mapped[bool] = mapped_column(Boolean, default=False)
     outcome: Mapped[str | None] = mapped_column(String(50), nullable=True)
     confidence: Mapped[int | None] = mapped_column(Integer, nullable=True)

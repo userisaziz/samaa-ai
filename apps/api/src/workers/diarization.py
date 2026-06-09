@@ -112,5 +112,7 @@ def diarize_audio(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Diarization failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)

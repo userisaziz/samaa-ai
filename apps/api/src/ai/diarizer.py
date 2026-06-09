@@ -163,8 +163,16 @@ def _normalize_speaker_labels(segments: list[dict]) -> list[dict]:
 
     for seg in segments:
         raw_speaker = seg["speaker"]
+        # Preserve UNKNOWN label — don't map it to a named speaker
+        if raw_speaker == "UNKNOWN":
+            seg["speaker"] = "UNKNOWN"
+            continue
         if raw_speaker not in speaker_map:
-            speaker_map[raw_speaker] = f"Speaker_{chr(65 + counter)}"  # A, B, C...
+            if counter < 26:
+                label = f"Speaker_{chr(65 + counter)}"
+            else:
+                label = f"Speaker_{counter + 1}"
+            speaker_map[raw_speaker] = label
             counter += 1
         seg["speaker"] = speaker_map[raw_speaker]
 

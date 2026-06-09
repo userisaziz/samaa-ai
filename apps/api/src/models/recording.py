@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -41,6 +42,7 @@ class Recording(Base):
     processed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    silence_gaps: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     salesperson: Mapped["Salesperson"] = relationship(

@@ -158,6 +158,12 @@ class NVIDIAClient:
         last_error = None
         for attempt in range(self._max_retries):
             try:
+                # Seek file streams back to start on retry
+                if attempt > 0:
+                    for key, file_tuple in files.items():
+                        if hasattr(file_tuple[1], 'seek'):
+                            file_tuple[1].seek(0)
+
                 logger.debug(f"NIM API POST {endpoint} (multipart, attempt {attempt + 1})")
                 with httpx.Client(timeout=self.timeout) as client:
                     response = client.post(url, files=files, data=data or {}, headers=headers)
@@ -254,7 +260,13 @@ class NVIDIAClient:
             raise NVIDIAAPIError("No data in embeddings response")
         # Sort by index to preserve order
         data.sort(key=lambda x: x.get("index", 0))
-        return [item["embedding"] for item in data]
+        embeddings = []
+        for item in data:
+            emb = item.get("embedding")
+            if emb is None:
+                raise NVIDIAAPIError(f"Missing embedding in embeddings response item: {item}")
+            embeddings.append(emb)
+        return embeddings
 
 
 # Singleton client instance

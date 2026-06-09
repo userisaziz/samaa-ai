@@ -73,6 +73,18 @@ def _update_recording_duration_sync(recording_id: str, duration_seconds: int):
     engine.dispose()
 
 
+def _store_silence_gaps_sync(recording_id: str, silence_gaps: list[tuple[float, float]]):
+    """Store silence gaps in recording.silence_gaps JSONB field."""
+    SessionLocal, engine = _get_sync_session()
+    with SessionLocal() as session:
+        recording = session.query(Recording).filter(Recording.id == uuid.UUID(recording_id)).first()
+        if recording:
+            # Convert to list of dicts for JSONB storage
+            recording.silence_gaps = [{"start": s / 1000.0, "end": e / 1000.0} for s, e in silence_gaps]
+        session.commit()
+    engine.dispose()
+
+
 # ---------------------------------------------------------------------------
 # Storage helpers (sync)
 # ---------------------------------------------------------------------------
@@ -154,6 +166,9 @@ def preprocess_audio(self, recording_id: str) -> str:
                 for i, (start, end) in enumerate(silence_ranges):
                     logger.debug(f"  Gap {i+1}: {start/1000:.1f}s - {end/1000:.1f}s")
 
+                # Store silence gaps in DB for segmentation
+                _store_silence_gaps_sync(recording_id, silence_ranges)
+
             # Export preprocessed audio
             logger.info(f"[{recording_id}] Exporting preprocessed audio")
             audio.export(output_path, format=TARGET_FORMAT, parameters=["-ar", str(TARGET_SAMPLE_RATE)])
@@ -179,5 +194,12 @@ def preprocess_audio(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Preprocessing failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        raise self.retry(exc=exc)
+        logger.error(f"[{recording_id}] Preprocessing failed: {exc}")
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)

@@ -95,7 +95,9 @@ def transcribe_audio_task(self, recording_id: str) -> str:
 
     except Exception as exc:
         logger.error(f"[{recording_id}] Transcription failed: {exc}")
-        _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
+        if self.request.retries >= self.max_retries:
+
+            _update_recording_status_sync(recording_id, RecordingStatus.FAILED, str(exc))
         raise self.retry(exc=exc)
 
 
@@ -128,12 +130,14 @@ def _transcribe_in_chunks(
         )
         chunk_segments = transcribe_audio(chunk_bytes)
 
-        # Adjust timestamps by offset
+        # Adjust timestamps by offset and clamp to chunk boundaries
         offset_seconds = offset_ms / 1000.0
+        chunk_end_seconds = end_ms / 1000.0
         for seg in chunk_segments:
-            seg["start"] += offset_seconds
-            seg["end"] += offset_seconds
-            all_segments.append(seg)
+            seg["start"] = max(seg["start"] + offset_seconds, offset_seconds)
+            seg["end"] = min(seg["end"] + offset_seconds, chunk_end_seconds)
+            if seg["start"] < seg["end"]:  # skip degenerate segments
+                all_segments.append(seg)
 
         offset_ms = end_ms
 
