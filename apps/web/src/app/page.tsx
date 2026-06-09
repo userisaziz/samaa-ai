@@ -27,6 +27,9 @@ export default function HomePage() {
       case "SALESPERSON":
         router.replace("/recordings");
         break;
+      case "OPERATOR":
+        router.replace("/operations");
+        break;
       default:
         router.replace("/recordings");
     }

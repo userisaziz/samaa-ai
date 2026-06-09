@@ -101,6 +101,13 @@ async def seed():
                 brand_id=brand.id,
                 store_id=store1.id,
             ),
+            User(
+                id=uuid.uuid4(),
+                email="ops@samaa.com",
+                password_hash=pwd_context.hash("ops123"),
+                full_name="Operations Staff",
+                role=UserRole.OPERATOR,
+            ),
         ]
         session.add_all(users)
 
@@ -114,6 +121,7 @@ async def seed():
         print(f"  Brand Admin: brand@retailmax.com / brand123")
         print(f"  Store Manager: manager@retailmax.com / manager123")
         print(f"  Salesperson: alice@retailmax.com / sales123")
+        print(f"  Operator:    ops@samaa.com / ops123")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
 from src.models.transcript import TranscriptSegment
-from src.schemas.recording import RecordingResponse, RecordingSummaryResponse
+from src.schemas.recording import RecordingResponse, RecordingStatusResponse, RecordingSummaryResponse
 
 
 async def list_recordings(

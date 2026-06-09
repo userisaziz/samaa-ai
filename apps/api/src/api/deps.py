@@ -60,3 +60,7 @@ require_store_manager_up = RoleChecker([
 require_salesperson_up = RoleChecker([
     UserRole.SUPER_ADMIN, UserRole.BRAND_ADMIN, UserRole.STORE_MANAGER, UserRole.SALESPERSON
 ])
+require_operator = RoleChecker([UserRole.OPERATOR])
+require_operator_up = RoleChecker([
+    UserRole.SUPER_ADMIN, UserRole.BRAND_ADMIN, UserRole.OPERATOR
+])
