@@ -9,4 +9,7 @@ related_to:
     - path: shared_package
     - path: web_app/dashboard_management
     - path: web_app/dashboard_conversations
-    - path: web_app
+    - path: web_app/auth
+    - path: web_app/dashboard_layout
+    - path: web_app/app_shell
+    - path: web_app/shared_ui_lib

@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: web_app/dashboard_layout
-title: Dashboard Layout & Shell Components
+title: Dashboard Layout & UI Components
 scope:
     - apps/web/src/app/(dashboard)/layout.tsx
     - apps/web/src/components/layout/
@@ -13,3 +13,7 @@ related_to:
     - path: web_app/auth
     - path: web_app/shared_ui_lib
     - path: web_app/app_shell
+    - path: shared_package
+    - path: web_app/dashboard_management
+    - path: web_app/dashboard_conversations
+    - path: api_service

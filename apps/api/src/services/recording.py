@@ -235,7 +235,13 @@ async def get_recording_summary(db: AsyncSession, recording_id: str) -> Recordin
             if a.intent:
                 intents.append(a.intent)
             if a.objections:
-                objections.extend(a.objections)
+                for obj in a.objections:
+                    if isinstance(obj, dict):
+                        issue = obj.get("issue", "")
+                        if issue:
+                            objections.append(issue)
+                    elif isinstance(obj, str) and obj:
+                        objections.append(obj)
             if a.outcome:
                 outcomes[a.outcome] += 1
                 if a.outcome == "LOST":

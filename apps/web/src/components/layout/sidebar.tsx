@@ -71,6 +71,13 @@ const navItems: NavItem[] = [
   },
 ];
 
+function getInitials(name?: string): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -88,11 +95,14 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-card">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-6 py-5">
+      <div className="flex items-center gap-3 px-6 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
           <Headphones className="h-4.5 w-4.5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold tracking-tight text-ink">SAMAA</span>
+        <div>
+          <span className="text-lg font-semibold tracking-tight text-ink">SAMAA</span>
+          <p className="text-[11px] font-medium text-steel -mt-0.5">Audio Intelligence</p>
+        </div>
       </div>
 
       <Separator />
@@ -110,13 +120,13 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   isActive
-                    ? "bg-brand-green-soft text-ink border-l-2 border-brand-green"
-                    : "text-steel hover:bg-secondary/70 hover:text-charcoal border-l-2 border-transparent",
+                    ? "bg-brand-green-soft text-ink font-medium"
+                    : "text-steel font-normal hover:bg-secondary/70 hover:text-charcoal",
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className={cn("h-4 w-4", isActive ? "text-brand-green-deep" : "")} />
                 {item.label}
               </Link>
             );
@@ -128,14 +138,21 @@ export function Sidebar() {
 
       {/* User section */}
       <div className="p-4">
-        <div className="mb-3 space-y-0.5">
-          <p className="text-sm font-medium text-ink">{user?.full_name}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-steel">{user?.role}</p>
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-ink">
+            {getInitials(user?.full_name)}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-ink truncate">{user?.full_name}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-steel truncate">
+              {user?.role}
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="w-full rounded-md"
+          className="w-full rounded-lg"
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />

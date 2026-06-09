@@ -1,4 +1,3 @@
-- FastAPI with Uvicorn for async HTTP serving.
-- Celery with Redis for background task orchestration.
-- SQLAlchemy (async) with PostgreSQL and pgvector for data persistence and embeddings.
-- NVIDIA NIM APIs (Parakeet STT, NeMo Diarization, Llama 3.3) for AI-driven audio analysis.
+- Asynchronous PostgreSQL driver `asyncpg` with SQLAlchemy 2.0 async support.
+- Celery with Redis for distributed task queue management.
+- NVIDIA NIM integration for STT (Parakeet), diarization (NeMo), and LLM-based analysis (Llama 3.3).

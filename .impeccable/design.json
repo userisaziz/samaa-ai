@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-10T00:00:00.000Z",
+  "title": "Design System: SAMAA",
+  "extensions": {
+    "colorMeta": {
+      "brand-green": {
+        "role": "primary",
+        "displayName": "Brand Mint",
+        "canonical": "oklch(0.75 0.18 165)",
+        "tonalRamp": [
+          "oklch(0.20 0.18 165)",
+          "oklch(0.30 0.18 165)",
+          "oklch(0.45 0.18 165)",
+          "oklch(0.55 0.18 165)",
+          "oklch(0.65 0.18 165)",
+          "oklch(0.75 0.18 165)",
+          "oklch(0.85 0.12 165)",
+          "oklch(0.95 0.05 165)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.15 0 0)",
+        "tonalRamp": [
+          "oklch(0.10 0 0)",
+          "oklch(0.15 0 0)",
+          "oklch(0.25 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.45 0 0)",
+          "oklch(0.55 0 0)",
+          "oklch(0.65 0 0)",
+          "oklch(0.85 0 0)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.85 0 0)",
+          "oklch(0.90 0 0)",
+          "oklch(0.92 0 0)",
+          "oklch(0.94 0 0)",
+          "oklch(0.96 0 0)",
+          "oklch(0.97 0 0)",
+          "oklch(0.985 0 0)",
+          "oklch(1 0 0)"
+        ]
+      },
+      "brand-tag": {
+        "role": "secondary",
+        "displayName": "Signal Blue",
+        "canonical": "oklch(0.55 0.15 260)",
+        "tonalRamp": [
+          "oklch(0.20 0.15 260)",
+          "oklch(0.30 0.15 260)",
+          "oklch(0.40 0.15 260)",
+          "oklch(0.55 0.15 260)",
+          "oklch(0.65 0.15 260)",
+          "oklch(0.75 0.10 260)",
+          "oklch(0.85 0.06 260)",
+          "oklch(0.95 0.03 260)"
+        ]
+      },
+      "brand-error": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "oklch(0.6 0.22 25)",
+        "tonalRamp": [
+          "oklch(0.20 0.22 25)",
+          "oklch(0.30 0.22 25)",
+          "oklch(0.45 0.22 25)",
+          "oklch(0.60 0.22 25)",
+          "oklch(0.70 0.18 25)",
+          "oklch(0.80 0.12 25)",
+          "oklch(0.90 0.06 25)",
+          "oklch(0.96 0.02 25)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Primary body text, descriptions, table cells, navigation items." },
+      "headline": { "displayName": "Page Title", "purpose": "Dashboard page headers. Largest type on any screen." },
+      "title": { "displayName": "Section Title", "purpose": "Card headers, subsection headers, dialog titles." },
+      "label": { "displayName": "Label", "purpose": "Sidebar section headers (uppercase), role badges, microcopy." },
+      "mono": { "displayName": "Mono Data", "purpose": "Scores, timestamps, confidence values, computed/measured values." }
+    },
+    "shadows": [
+      { "name": "card-rest", "value": "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)", "purpose": "Default card elevation. Lifts off surface-soft background." },
+      { "name": "card-hover", "value": "0 4px 12px rgba(0,0,0,0.08)", "purpose": "Interactive cards on hover. Signals clickability." },
+      { "name": "login-card", "value": "0 4px 24px -4px rgba(0,0,0,0.08)", "purpose": "Login card shadow. Deepest diffuse shadow for full-page elevated element." },
+      { "name": "popover", "value": "0 8px 24px rgba(0,0,0,0.12)", "purpose": "Floating menus and popovers. Deepest shadow in system." }
+    ],
+    "motion": [
+      { "name": "transition-colors", "value": "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease", "purpose": "Default color transition for interactive elements." },
+      { "name": "transition-shadow", "value": "box-shadow 0.2s ease", "purpose": "Shadow transition for card hover elevation." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The decisive action button. Near-black on white.",
+      "html": "<button class=\"ds-btn-primary\">Upload Recording</button>",
+      "css": ".ds-btn-primary { background: oklch(0.15 0 0); color: oklch(0.985 0 0); padding: 8px 16px; font-weight: 500; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s ease; font-family: Inter, sans-serif; } .ds-btn-primary:hover { background: oklch(0.25 0 0); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.75 0.18 165); outline-offset: 2px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action with visible border.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { background: transparent; color: oklch(0.15 0 0); padding: 8px 16px; font-weight: 500; font-size: 14px; border: 1px solid oklch(0.92 0 0); border-radius: 8px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; font-family: Inter, sans-serif; } .ds-btn-outline:hover { background: oklch(0.96 0 0); } .ds-btn-outline:focus-visible { outline: 2px solid oklch(0.75 0.18 165); outline-offset: 2px; }"
+    },
+    {
+      "name": "KPI Card",
+      "kind": "card",
+      "description": "Dashboard metric card with icon, value, and optional trend.",
+      "html": "<div class=\"ds-kpi-card\"><div class=\"ds-kpi-header\"><span class=\"ds-kpi-title\">Total Conversations</span><div class=\"ds-kpi-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z\"/><path d=\"M19 10v2a7 7 0 0 1-14 0v-2\"/><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"23\"/></svg></div></div><div class=\"ds-kpi-value\">1,247</div><p class=\"ds-kpi-trend ds-kpi-trend-up\">+12% from last period</p></div>",
+      "css": ".ds-kpi-card { background: oklch(1 0 0); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06); font-family: Inter, sans-serif; } .ds-kpi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; } .ds-kpi-title { font-size: 14px; font-weight: 500; color: oklch(0.55 0 0); } .ds-kpi-icon { width: 32px; height: 32px; background: oklch(0.95 0.05 165); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: oklch(0.65 0.2 165); } .ds-kpi-value { font-size: 24px; font-weight: 600; color: oklch(0.15 0 0); letter-spacing: -0.02em; font-family: 'Geist Mono', monospace; } .ds-kpi-trend { font-size: 12px; font-weight: 500; margin-top: 4px; } .ds-kpi-trend-up { color: oklch(0.65 0.2 165); }"
+    },
+    {
+      "name": "Status Badge Completed",
+      "kind": "chip",
+      "description": "Completed pipeline stage indicator.",
+      "html": "<span class=\"ds-badge-completed\">Completed</span>",
+      "css": ".ds-badge-completed { display: inline-flex; align-items: center; background: oklch(0.95 0.05 165); color: oklch(0.65 0.2 165); border: 1px solid oklch(0.75 0.18 165 / 0.3); padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; font-family: Inter, sans-serif; }"
+    },
+    {
+      "name": "Status Badge Processing",
+      "kind": "chip",
+      "description": "Active pipeline processing stage.",
+      "html": "<span class=\"ds-badge-processing\">Analyzing</span>",
+      "css": ".ds-badge-processing { display: inline-flex; align-items: center; background: oklch(0.55 0.15 260 / 0.1); color: oklch(0.55 0.15 260); border: 1px solid oklch(0.55 0.15 260 / 0.2); padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; font-family: Inter, sans-serif; }"
+    },
+    {
+      "name": "Sidebar Nav Item Active",
+      "kind": "nav",
+      "description": "Active navigation item in the dashboard sidebar.",
+      "html": "<a class=\"ds-nav-item ds-nav-item-active\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>Brand Dashboard</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; transition: background 0.15s ease, color 0.15s ease; border-left: 2px solid transparent; font-family: Inter, sans-serif; color: oklch(0.55 0 0); } .ds-nav-item:hover { background: oklch(0.96 0 0 / 0.7); color: oklch(0.25 0 0); } .ds-nav-item-active { background: oklch(0.95 0.05 165); color: oklch(0.15 0 0); border-left-color: oklch(0.75 0.18 165); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "description": "Standard text input with focus ring.",
+      "html": "<div class=\"ds-input-group\"><label class=\"ds-input-label\">Email</label><input class=\"ds-input\" type=\"email\" placeholder=\"admin@samaa.com\" /></div>",
+      "css": ".ds-input-group { display: flex; flex-direction: column; gap: 8px; font-family: Inter, sans-serif; } .ds-input-label { font-size: 14px; font-weight: 500; color: oklch(0.25 0 0); } .ds-input { height: 40px; padding: 8px 12px; border: 1px solid oklch(0.92 0 0); border-radius: 8px; background: oklch(1 0 0); color: oklch(0.15 0 0); font-size: 14px; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input::placeholder { color: oklch(0.65 0 0); } .ds-input:focus { outline: none; border-color: oklch(0.75 0.18 165); box-shadow: 0 0 0 3px oklch(0.75 0.18 165 / 0.15); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Analyst's Workbench",
+    "overview": "SAMAA's visual system is a refined analytical workspace. Like a well-organized analyst's desk, every element has a designated place and purpose. The interface communicates data confidence through clean precision and warm professionalism. The system explicitly rejects generic enterprise CRM aesthetics and cold sterility.",
+    "keyCharacteristics": [
+      "Mint-green brand accent reserved for active states, focus rings, and positive indicators",
+      "Black primary buttons for decisive CTAs across all surfaces",
+      "Inter for all UI prose; Geist Mono for data values and computed metrics",
+      "Soft elevation via subtle shadows on cards and interactive containers",
+      "shadcn/ui component foundation with custom semantic color tokens",
+      "Dashboard shell: fixed 256px sidebar with flex-1 scrollable content area",
+      "WCAG AAA contrast targets across all text/background combinations"
+    ],
+    "rules": [
+      { "name": "The Mint Restraint Rule", "body": "Brand mint appears on at most 3-4 elements per viewport. Its rarity is the brand signal.", "section": "colors" },
+      { "name": "The Semantic Pairing Rule", "body": "Color never carries meaning alone. Every color-coded status pairs with a text label.", "section": "colors" },
+      { "name": "The Two-Face Rule", "body": "Inter for human language, Geist Mono for machine values. The typeface IS the data provenance signal.", "section": "typography" },
+      { "name": "The Uppercase Ceiling Rule", "body": "Uppercase text is limited to 11px labels with wide tracking. No all-caps above 11px.", "section": "typography" },
+      { "name": "The Whisper Rule", "body": "Shadows are whispers, not statements. If a shadow is the first thing you notice, it's too strong.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use brand-green sparingly. Count mint-colored elements per viewport: 3-4 is the ceiling.",
+      "Do pair Inter for all UI prose and Geist Mono for all computed/measured values.",
+      "Do maintain 7:1 contrast ratio on body text (WCAG AAA).",
+      "Do use surface-soft as the dashboard content background.",
+      "Do encode every status with both color AND text.",
+      "Do keep the sidebar at 256px fixed width with canvas background."
+    ],
+    "donts": [
+      "Don't use the generic enterprise CRM template.",
+      "Don't use brand-green on body text, large surfaces, or decorative elements.",
+      "Don't introduce pill-shaped buttons. Use rounded-md (8px), not rounded-full.",
+      "Don't use all-caps text above 11px.",
+      "Don't use glassmorphism, gradient text, or decorative blur effects.",
+      "Don't use side-stripe borders greater than 1px as colored accent.",
+      "Don't create identical card grids repeated endlessly.",
+      "Don't use heavy drop shadows beyond the popover level."
+    ]
+  }
+}

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import type { Recording } from "@samaa/shared";
 import { StatusBadge } from "@/components/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mic, ChevronLeft, ChevronRight, RefreshCw, Eye, Download } from "lucide-react";
+import { Mic, ChevronLeft, ChevronRight, RefreshCw, Eye, Download, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
@@ -57,6 +58,25 @@ function formatDate(dateStr: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function TableSkeleton() {
+  return (
+    <div className="space-y-3 py-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <div className="flex-1" />
+          <Skeleton className="h-8 w-16 rounded-lg" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function RecordingsPage() {
@@ -107,12 +127,13 @@ export default function RecordingsPage() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4 sm:pb-6">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">Recordings</h1>
+          <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Recordings</h1>
           <p className="mt-1 text-sm text-steel">
-            {data?.total ?? 0} total recordings
+            <span className="font-mono">{data?.total ?? 0}</span> total recordings
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -125,7 +146,7 @@ export default function RecordingsPage() {
             }}
           >
             <Download className="mr-2 h-4 w-4" />
-            CSV
+            Export CSV
           </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -135,87 +156,88 @@ export default function RecordingsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 flex-wrap rounded-lg border border-border bg-card p-4">
-        <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUSES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-steel">From:</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="h-9 w-auto"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-steel">To:</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="h-9 w-auto"
-          />
-        </div>
-        {(dateFrom || dateTo) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
-          >
-            Clear dates
-          </Button>
-        )}
-      </div>
+      <Card className="shadow-none border-border">
+        <CardContent className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-wrap py-4">
+          <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-steel">From:</label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="h-9 w-auto"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-steel">To:</label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="h-9 w-auto"
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+            >
+              Clear dates
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recordings Table */}
-      <Card>
+      <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Mic className="h-4 w-4" />
+            <Mic className="h-4 w-4 text-steel" />
             Audio Recordings
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          ) : (
+            <TableSkeleton />
+          ) : recordings.length > 0 ? (
             <>
+              <div className="overflow-x-auto -mx-6 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Recorded</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Format</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Recorded</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Uploaded</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Duration</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Format</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Size</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Status</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recordings.map((rec) => (
                     <TableRow key={rec.id}>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-steel font-mono text-[13px]">
                         {rec.recorded_at ? formatDate(rec.recorded_at) : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-steel font-mono text-[13px]">
                         {formatDate(rec.uploaded_at)}
                       </TableCell>
-                      <TableCell>{formatDuration(rec.duration_seconds)}</TableCell>
-                      <TableCell className="text-muted-foreground">{rec.format}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="font-mono text-sm">{formatDuration(rec.duration_seconds)}</TableCell>
+                      <TableCell className="text-steel">{rec.format}</TableCell>
+                      <TableCell className="text-steel font-mono text-sm">
                         {rec.file_size ? `${(rec.file_size / 1024 / 1024).toFixed(1)} MB` : "—"}
                       </TableCell>
                       <TableCell>
@@ -247,21 +269,15 @@ export default function RecordingsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {recordings.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                        No recordings found
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                  <p className="text-sm text-steel">
+                    Page <span className="font-mono font-medium text-ink">{page}</span> of <span className="font-mono font-medium text-ink">{totalPages}</span>
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
@@ -284,6 +300,12 @@ export default function RecordingsPage() {
                 </div>
               )}
             </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+              <p className="text-sm font-medium text-steel">No recordings found</p>
+              <p className="text-xs text-stone mt-1">Try adjusting your filters or upload new audio files.</p>
+            </div>
           )}
         </CardContent>
       </Card>

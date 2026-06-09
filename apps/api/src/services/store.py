@@ -125,7 +125,13 @@ async def get_store_metrics(db: AsyncSession, store_id: str) -> StoreMetricsResp
         all_objections: list[str] = []
         for row in objections_result.all():
             if row[0]:
-                all_objections.extend(row[0])
+                for obj in row[0]:
+                    if isinstance(obj, dict):
+                        issue = obj.get("issue", "")
+                        if issue:
+                            all_objections.append(issue)
+                    elif isinstance(obj, str) and obj:
+                        all_objections.append(obj)
         if all_objections:
             top_objection = Counter(all_objections).most_common(1)[0][0]
 

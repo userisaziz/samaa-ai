@@ -12,3 +12,7 @@ related_to:
     - path: web_app/dashboard_layout
     - path: web_app/dashboard_conversations
     - path: web_app/dashboard_management
+    - path: web_app/app_shell
+    - path: web_app/auth
+    - path: api_service
+    - path: shared_package

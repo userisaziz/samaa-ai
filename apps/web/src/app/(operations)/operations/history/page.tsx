@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mic, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Mic, ChevronLeft, ChevronRight, RefreshCw, Inbox } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUSES = [
   { value: "ALL", label: "All Statuses" },
@@ -101,14 +102,14 @@ export default function OperationsHistoryPage() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4 sm:pb-6">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">
+          <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">
             Upload History
           </h1>
           <p className="mt-1 text-sm text-steel">
-            {data?.total ?? 0} recordings found
+            <span className="font-mono">{data?.total ?? 0}</span> recordings found
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -118,7 +119,7 @@ export default function OperationsHistoryPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 flex-wrap rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-wrap rounded-lg border border-border bg-card p-4">
         <Select
           value={statusFilter}
           onValueChange={(v) => {
@@ -128,7 +129,7 @@ export default function OperationsHistoryPage() {
             }
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -166,7 +167,7 @@ export default function OperationsHistoryPage() {
       </div>
 
       {/* Recordings Table */}
-      <Card>
+      <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
@@ -175,20 +176,30 @@ export default function OperationsHistoryPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <div className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-5 flex-[3]" />
+                  <Skeleton className="h-5 flex-[2]" />
+                  <Skeleton className="h-5 flex-[2]" />
+                  <Skeleton className="h-5 w-16 hidden sm:block" />
+                  <Skeleton className="h-5 w-20 hidden sm:block" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+              ))}
             </div>
           ) : (
             <>
+              <div className="overflow-x-auto -mx-6 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead>Recorded</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                    <TableHead>Format</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">File</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Recorded</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Uploaded</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Format</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Size</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -197,14 +208,14 @@ export default function OperationsHistoryPage() {
                       <TableCell className="font-medium">
                         {rec.file_url.split("/").pop() || rec.file_url}
                       </TableCell>
-                      <TableCell className="text-steel">
+                      <TableCell className="text-steel font-mono text-sm">
                         {rec.recorded_at ? formatDate(rec.recorded_at) : "\u2014"}
                       </TableCell>
-                      <TableCell className="text-steel">
+                      <TableCell className="text-steel font-mono text-sm">
                         {formatDate(rec.uploaded_at)}
                       </TableCell>
-                      <TableCell className="text-steel">{rec.format}</TableCell>
-                      <TableCell className="text-steel">
+                      <TableCell className="text-steel font-mono text-sm">{rec.format}</TableCell>
+                      <TableCell className="text-steel font-mono text-sm">
                         {rec.file_size
                           ? `${(rec.file_size / 1024 / 1024).toFixed(1)} MB`
                           : "\u2014"}
@@ -216,21 +227,23 @@ export default function OperationsHistoryPage() {
                   ))}
                   {recordings.length === 0 && (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-12 text-steel"
-                      >
-                        No recordings found
+                      <TableCell colSpan={6} className="py-12">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+                          <p className="text-sm font-medium text-steel">No recordings found</p>
+                          <p className="text-xs text-stone mt-1">Try adjusting your filters or date range</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-steel">
+                  <p className="text-sm text-steel font-mono">
                     Page {page} of {totalPages}
                   </p>
                   <div className="flex items-center gap-2">

@@ -70,23 +70,38 @@ async def export_conversations_csv(
     writer = csv.writer(output)
     writer.writerow([
         "Conversation ID", "Recording ID", "Start Time", "End Time",
-        "Segments", "Intent", "Products", "Budget", "Objections",
-        "Competitors", "Closing Attempt", "Outcome", "Confidence",
+        "Segments", "Intent", "Customer Expectation", "Products", "Budget",
+        "Objections", "Competitors", "Closing Attempt", "Outcome", "Loss Reason",
+        "Confidence",
         "Greeting Score", "Discovery Score", "Product Knowledge Score",
         "Objection Handling Score", "Closing Score", "Summary", "Coaching Notes",
     ])
     for conv, analysis, _rec in rows:
         scores = analysis.scores or {} if analysis else {}
+
+        # Format objections: handle both legacy strings and new structured objects
+        objections_str = ""
+        if analysis and analysis.objections:
+            parts = []
+            for obj in analysis.objections:
+                if isinstance(obj, dict):
+                    parts.append(f"[{obj.get('category', 'Other')}] {obj.get('issue', '')} -> {obj.get('response', '')}")
+                else:
+                    parts.append(str(obj))
+            objections_str = "; ".join(parts)
+
         writer.writerow([
             str(conv.id), str(conv.recording_id),
             conv.start_time, conv.end_time, conv.segment_count,
             analysis.intent or "" if analysis else "",
+            analysis.customer_expectation or "" if analysis else "",
             ", ".join(analysis.products or []) if analysis else "",
             analysis.budget or "" if analysis else "",
-            "; ".join(analysis.objections or []) if analysis else "",
+            objections_str,
             ", ".join(analysis.competitors or []) if analysis else "",
             analysis.closing_attempt if analysis else "",
             analysis.outcome or "" if analysis else "",
+            analysis.loss_reason or "" if analysis else "",
             analysis.confidence or "" if analysis else "",
             scores.get("greeting_score", ""),
             scores.get("discovery_score", ""),

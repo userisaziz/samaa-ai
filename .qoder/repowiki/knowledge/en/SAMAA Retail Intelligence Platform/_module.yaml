@@ -1,10 +1,12 @@
 schema_version: 1
 module_path: ""
-title: Retail Intelligence Monorepo Orchestrator
+title: SAMAA Retail Intelligence Platform
 scope:
     - .env
     - .env.example
     - .gitignore
+    - DESIGN.md
+    - PRODUCT.md
     - README.md
     - docker-compose.yml
     - package-lock.json

@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-badge";
-import { Upload, CheckCircle, XCircle, Loader2, FileAudio } from "lucide-react";
+import { Upload, CheckCircle, XCircle, Loader2, FileAudio, Clock, Mic, Inbox } from "lucide-react";
 import type { Brand, Store, Salesperson, Recording } from "@samaa/shared";
 
 interface UploadItem {
@@ -32,6 +32,27 @@ interface UploadItem {
   status: "pending" | "uploading" | "success" | "error";
   error?: string;
   recordingId?: string;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function formatRecordedTime(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
 }
 
 export default function OperationsPage() {
@@ -51,7 +72,11 @@ export default function OperationsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Fetch brands
-  const { data: brands = [] } = useQuery({
+  const {
+    data: brands = [],
+    isLoading: brandsLoading,
+    error: brandsError,
+  } = useQuery({
     queryKey: ["brands"],
     queryFn: () => api.get<Brand[]>("/brands"),
   });
@@ -201,36 +226,56 @@ export default function OperationsPage() {
   ).length;
   const failedCount = recordings.filter((r: Recording) => r.status === "FAILED").length;
 
+  const todayFormatted = new Date().toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">Upload Recording</h1>
-        <p className="mt-1 text-sm text-steel">
-          Upload audio recordings for salespeople. Select the hierarchy, pick a
-          file, and upload.
+    <div className="p-4 sm:p-6 lg:p-8">
+      {/* Page Header */}
+      <div className="border-b border-border pb-5 sm:pb-6 mb-5 sm:mb-6">
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink leading-tight">
+          Upload Recording
+        </h1>
+        <p className="mt-1.5 text-sm text-slate">
+          Select the brand, store, and salesperson hierarchy, then upload an audio file for analysis.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-5 lg:gap-6 lg:grid-cols-5">
         {/* Upload Form */}
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-3 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
           <CardHeader>
-            <CardTitle className="text-lg">New Upload</CardTitle>
+            <CardTitle>New Upload</CardTitle>
             <CardDescription>
               Select brand, store, and salesperson, then upload an audio file.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Cascading Selectors */}
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1.5">
                 <Label>Brand</Label>
                 <Select
                   value={selectedBrandId}
                   onValueChange={(v) => v && setSelectedBrandId(v)}
+                  disabled={brandsLoading}
+                  items={brands.map((b: Brand) => ({ label: b.name, value: b.id }))}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select brand" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        brandsLoading
+                          ? "Loading..."
+                          : brandsError
+                            ? "Error loading brands"
+                            : brands.length === 0
+                              ? "No brands found"
+                              : "Select brand"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((b: Brand) => (
@@ -240,6 +285,11 @@ export default function OperationsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {brandsError && (
+                  <p className="text-xs text-destructive">
+                    Failed to load brands: {brandsError.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -248,8 +298,9 @@ export default function OperationsPage() {
                   value={selectedStoreId}
                   onValueChange={(v) => v && setSelectedStoreId(v)}
                   disabled={!selectedBrandId}
+                  items={stores.map((s: Store) => ({ label: s.name, value: s.id }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue
                       placeholder={
                         selectedBrandId ? "Select store" : "Select brand first"
@@ -272,8 +323,9 @@ export default function OperationsPage() {
                   value={selectedSalespersonId}
                   onValueChange={(v) => v && setSelectedSalespersonId(v)}
                   disabled={!selectedStoreId}
+                  items={salespeople.map((s: Salesperson) => ({ label: `${s.name}${s.device_number ? ` (#${s.device_number})` : ""}`, value: s.id }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue
                       placeholder={
                         selectedStoreId
@@ -320,12 +372,12 @@ export default function OperationsPage() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
+              className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-all duration-200 ${
                 isDragging
-                  ? "border-brand-green bg-brand-green-soft"
+                  ? "border-brand-green bg-brand-green-soft scale-[1.01]"
                   : selectedFile
-                    ? "border-brand-green bg-brand-green-soft"
-                    : "border-border hover:border-brand-green/50 hover:bg-surface"
+                    ? "border-brand-green/60 bg-brand-green-soft/50"
+                    : "border-border hover:border-steel/40 hover:bg-surface"
               }`}
             >
               <input
@@ -337,25 +389,33 @@ export default function OperationsPage() {
               />
               {selectedFile ? (
                 <div className="flex items-center gap-3">
-                  <FileAudio className="h-8 w-8 text-brand-green-deep" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-green-soft">
+                    <FileAudio className="h-5 w-5 text-brand-green-deep" />
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-ink">
                       {selectedFile.name}
                     </p>
-                    <p className="text-xs text-steel">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                    <p className="text-xs text-steel font-mono">
+                      {formatFileSize(selectedFile.size)}
                     </p>
                   </div>
                   <CheckCircle className="h-5 w-5 text-brand-green-deep" />
                 </div>
               ) : (
                 <>
-                  <Upload className="mb-2 h-8 w-8 text-steel" />
+                  <div className={`mb-3 flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-200 ${
+                    isDragging ? "bg-brand-green-soft" : "bg-surface"
+                  }`}>
+                    <Upload className={`h-5 w-5 transition-colors duration-200 ${
+                      isDragging ? "text-brand-green-deep" : "text-steel"
+                    }`} />
+                  </div>
                   <p className="text-sm font-medium text-ink">
-                    Drag & drop audio file here
+                    {isDragging ? "Drop file to upload" : "Drag and drop audio file"}
                   </p>
-                  <p className="text-xs text-steel">
-                    or click to browse (WAV, MP3, M4A)
+                  <p className="mt-0.5 text-xs text-steel">
+                    or click to browse. Supports WAV, MP3, M4A
                   </p>
                 </>
               )}
@@ -369,6 +429,7 @@ export default function OperationsPage() {
                 !selectedSalespersonId ||
                 uploadQueue.some((u) => u.status === "uploading")
               }
+              size="lg"
               className="w-full"
             >
               {uploadQueue.some((u) => u.status === "uploading") ? (
@@ -387,55 +448,78 @@ export default function OperationsPage() {
         </Card>
 
         {/* Today's Summary */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
           <CardHeader>
-            <CardTitle className="text-lg">Today&apos;s Uploads</CardTitle>
-            <CardDescription>{todayStr}</CardDescription>
+            <CardTitle>Today&apos;s Uploads</CardTitle>
+            <CardDescription>{todayFormatted}</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Stat boxes */}
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-brand-green-soft p-3 text-center">
-                <p className="text-2xl font-semibold text-brand-green-deep">
+                <p className="text-2xl font-semibold text-brand-green-deep font-mono">
                   {completedCount}
                 </p>
-                <p className="text-xs text-brand-green-deep">Completed</p>
+                <p className="text-[11px] font-medium text-brand-green-deep mt-0.5">Completed</p>
               </div>
-              <div className="rounded-lg bg-blue-50 p-3 text-center">
-                <p className="text-2xl font-semibold text-blue-700">
+              <div className="rounded-lg bg-brand-tag/8 p-3 text-center">
+                <p className="text-2xl font-semibold text-brand-tag font-mono">
                   {processingCount}
                 </p>
-                <p className="text-xs text-blue-600">Processing</p>
+                <p className="text-[11px] font-medium text-brand-tag mt-0.5">Processing</p>
               </div>
-              <div className="rounded-lg bg-destructive/10 p-3 text-center">
-                <p className="text-2xl font-semibold text-destructive">
+              <div className="rounded-lg bg-destructive/8 p-3 text-center">
+                <p className="text-2xl font-semibold text-destructive font-mono">
                   {failedCount}
                 </p>
-                <p className="text-xs text-destructive">Failed</p>
+                <p className="text-[11px] font-medium text-destructive mt-0.5">Failed</p>
               </div>
             </div>
 
             {/* Recent uploads list */}
-            {recordings.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel">
+            {recordings.length > 0 ? (
+              <div className="mt-5 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-steel">
                   Recent
                 </p>
-                {recordings.slice(0, 5).map((r: Recording) => (
-                  <div
-                    key={r.id}
-                    className="flex items-center justify-between rounded-md border border-border p-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {r.file_url.split("/").pop() || r.file_url}
-                      </p>
-                      <p className="text-xs text-steel">
-                        {r.salesperson_id.slice(0, 8)}...
-                      </p>
+                {recordings.slice(0, 6).map((r: Recording) => {
+                  const fileName = r.file_url.split("/").pop() || r.file_url;
+                  return (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-2.5 transition-colors hover:bg-surface/50"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface">
+                          <Mic className="h-3.5 w-3.5 text-steel" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-ink leading-snug">
+                            {fileName}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Clock className="h-3 w-3 text-stone shrink-0" />
+                            <p className="text-xs text-steel font-mono">
+                              {formatRecordedTime(r.recorded_at)}
+                              {r.duration_seconds ? ` / ${formatDuration(r.duration_seconds)}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <StatusBadge status={r.status} />
                     </div>
-                    <StatusBadge status={r.status} />
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface mb-3">
+                  <Inbox className="h-5 w-5 text-stone" />
+                </div>
+                <p className="text-sm font-medium text-slate">No uploads today</p>
+                <p className="text-xs text-steel mt-0.5">
+                  Files you upload will appear here with their pipeline status
+                </p>
               </div>
             )}
           </CardContent>
@@ -444,40 +528,61 @@ export default function OperationsPage() {
 
       {/* Upload Queue */}
       {uploadQueue.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
           <CardHeader>
-            <CardTitle className="text-lg">Upload Queue</CardTitle>
+            <CardTitle>Upload Queue</CardTitle>
+            <CardDescription>
+              {uploadQueue.filter((u) => u.status === "uploading").length > 0
+                ? `${uploadQueue.filter((u) => u.status === "uploading").length} uploading`
+                : "All uploads complete"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="divide-y divide-border">
               {uploadQueue.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-md border border-border p-3"
+                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                 >
-                  <div className="flex items-center gap-3">
-                    {item.status === "uploading" && (
-                      <Loader2 className="h-4 w-4 animate-spin text-brand-tag" />
-                    )}
-                    {item.status === "success" && (
-                      <CheckCircle className="h-4 w-4 text-brand-green-deep" />
-                    )}
-                    {item.status === "error" && (
-                      <XCircle className="h-4 w-4 text-destructive" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-ink">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                      item.status === "uploading"
+                        ? "bg-brand-tag/8"
+                        : item.status === "success"
+                          ? "bg-brand-green-soft"
+                          : "bg-destructive/8"
+                    }`}>
+                      {item.status === "uploading" && (
+                        <Loader2 className="h-4 w-4 animate-spin text-brand-tag" />
+                      )}
+                      {item.status === "success" && (
+                        <CheckCircle className="h-4 w-4 text-brand-green-deep" />
+                      )}
+                      {item.status === "error" && (
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">
                         {item.file.name}
                       </p>
                       <p className="text-xs text-steel">
-                        {item.salespersonName} &middot;{" "}
-                        {new Date(item.recordedAt).toLocaleString()}
+                        {item.salespersonName}{" "}
+                        <span className="text-stone font-mono">
+                          {new Date(item.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-steel">
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    item.status === "uploading"
+                      ? "bg-brand-tag/8 text-brand-tag"
+                      : item.status === "success"
+                        ? "bg-brand-green-soft text-brand-green-deep"
+                        : "bg-destructive/8 text-destructive"
+                  }`}>
                     {item.status === "uploading"
-                      ? "Uploading..."
+                      ? "Uploading"
                       : item.status === "success"
                         ? "Done"
                         : item.error || "Failed"}

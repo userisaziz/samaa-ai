@@ -1,3 +1,0 @@
-- Use `uv` for dependency management as indicated by `uv.lock` and `.python-version`.
-- Run database migrations via `alembic upgrade head` using the configuration in `alembic.ini`.
-- Start the API server with `uvicorn src.main:app` and the worker process with `celery -A src.workers.celery_app worker`.

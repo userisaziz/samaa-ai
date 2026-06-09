@@ -1,3 +1,3 @@
-- Uses Next.js route groups (parenthesized directories) to decouple layout inheritance from URL structure.
-- Implements client-side authentication guards instead of server-side middleware redirections.
-- Centralizes API communication through a typed singleton client with built-in JWT refresh handling.
+- All feature pages use Next.js App Router `page.tsx` convention within route groups for layout isolation.
+- Shared UI components are strictly separated into `components/ui` for primitives and `components/features` for domain-specific composites.
+- Global state management for auth is isolated in `src/store` using Zustand, decoupled from UI components.

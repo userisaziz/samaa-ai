@@ -17,7 +17,17 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { Users, Mic, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Mic, TrendingUp, AlertTriangle, Inbox } from "lucide-react";
+import type { AnalyticsOverviewResponse, AnalyticsSalespeopleResponse } from "@samaa/shared";
+import { OutcomeDonut } from "@/components/charts/outcome-donut";
+import { ConversionGauge } from "@/components/charts/conversion-gauge";
+import { ScoreTrend } from "@/components/charts/score-trend";
+import { VolumeTrend } from "@/components/charts/volume-trend";
+import { PerformanceBar } from "@/components/charts/performance-bar";
+import { SkillRadarCompare } from "@/components/charts/skill-radar-compare";
+import { ObjectionTreemap } from "@/components/charts/objection-treemap";
+import { SkillHeatmap } from "@/components/charts/skill-heatmap";
+import { SalesFunnel } from "@/components/charts/sales-funnel";
 
 export default function StoreDashboardPage() {
   const params = useParams();
@@ -72,8 +82,22 @@ export default function StoreDashboardPage() {
   // Find top objection from all salespeople (placeholder until aggregated endpoint exists)
   const topObjection = "—";
 
+  // Fetch analytics overview + salespeople comparison
+  const { data: analytics } = useQuery({
+    queryKey: ["analytics-overview", "store", storeId],
+    queryFn: () =>
+      api.get<AnalyticsOverviewResponse>(`/analytics/overview?store_id=${storeId}`),
+    enabled: !!storeId,
+  });
+  const { data: salespeopleComparison } = useQuery({
+    queryKey: ["analytics-salespeople", "store", storeId],
+    queryFn: () =>
+      api.get<AnalyticsSalespeopleResponse>(`/analytics/salespeople-comparison?store_id=${storeId}`),
+    enabled: !!storeId,
+  });
+
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
@@ -82,8 +106,8 @@ export default function StoreDashboardPage() {
       />
 
       {/* Store Header */}
-      <div>
-        <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">{store?.name || "Store"}</h1>
+      <div className="border-b border-border pb-4 sm:pb-6">
+        <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">{store?.name || "Store"}</h1>
         <p className="mt-1 text-sm text-steel">{store?.location || ""}</p>
       </div>
 
@@ -115,69 +139,111 @@ export default function StoreDashboardPage() {
         />
       </div>
 
+      {/* Analytics Charts */}
+      {(analytics || salespeopleComparison) && (
+        <>
+          {/* Row 1: Outcome Donut + Conversion Gauge + Sales Funnel */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <OutcomeDonut data={analytics?.outcome_distribution ?? []} />
+            <ConversionGauge
+              value={analytics?.conversion_rate ?? null}
+              label={`${analytics?.total_conversations ?? 0} conversations`}
+            />
+            <SalesFunnel data={analytics?.funnel_stages ?? []} />
+          </div>
+
+          {/* Row 2: Score Trend + Volume Trend */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ScoreTrend data={analytics?.score_trend ?? []} />
+            <VolumeTrend data={analytics?.volume_trend ?? []} />
+          </div>
+
+          {/* Row 3: Sales Performance Bar (within-store ranking) */}
+          <PerformanceBar data={salespeopleComparison?.salespeople ?? []} />
+
+          {/* Row 4: Skill Radar Comparison + Top Objections Treemap */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <SkillRadarCompare data={salespeopleComparison?.salespeople ?? []} />
+            <ObjectionTreemap data={analytics?.top_objections ?? []} />
+          </div>
+
+          {/* Row 5: Team Skill Heatmap */}
+          {salespeopleComparison?.salespeople && salespeopleComparison.salespeople.length > 0 && (
+            <SkillHeatmap data={salespeopleComparison.salespeople} />
+          )}
+        </>
+      )}
+
       {/* Salesperson Performance Table */}
-      <Card>
+      <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
         <CardHeader>
-          <CardTitle>Salesperson Performance</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-steel" />
+            Salesperson Performance
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Shift</TableHead>
-                <TableHead className="text-right">Avg Score</TableHead>
-                <TableHead className="text-right">Conversations</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {salespeople?.map((sp) => {
-                const perf = performances.get(sp.id);
-                return (
-                  <TableRow key={sp.id}>
-                    <TableCell>
-                      <Link
-                        href={`/salesperson/${sp.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {sp.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-steel">{sp.role || "—"}</TableCell>
-                    <TableCell className="text-steel">{sp.shift || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      {perf?.avg_overall_score != null ? (
-                        <Badge
-                          variant="outline"
-                          className={
-                            perf.avg_overall_score >= 80
-                              ? "border-brand-green/30 text-brand-green-deep bg-brand-green-soft"
-                              : perf.avg_overall_score >= 60
-                              ? "border-brand-warn/30 text-amber-700 bg-amber-50"
-                              : "border-brand-error/20 text-destructive bg-destructive/10"
-                          }
-                        >
-                          {perf.avg_overall_score.toFixed(0)}
-                        </Badge>
-                      ) : (
-                        <span className="text-steel">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {perf?.total_conversations ?? 0}
-                    </TableCell>
-                  </TableRow>
-                );
-              }) ?? (
+          {salespeople && salespeople.length > 0 ? (
+            <div className="overflow-x-auto -mx-6 sm:mx-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-steel py-12">
-                    No salespeople found
-                  </TableCell>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Name</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Role</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Shift</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Conversations</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {salespeople.map((sp) => {
+                  const perf = performances.get(sp.id);
+                  return (
+                    <TableRow key={sp.id}>
+                      <TableCell>
+                        <Link
+                          href={`/salesperson/${sp.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {sp.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-steel">{sp.role || "—"}</TableCell>
+                      <TableCell className="text-steel">{sp.shift || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        {perf?.avg_overall_score != null ? (
+                          <Badge
+                            variant="outline"
+                            className={
+                              perf.avg_overall_score >= 80
+                                ? "border-brand-green/30 text-brand-green-deep bg-brand-green-soft font-mono"
+                                : perf.avg_overall_score >= 60
+                                ? "border-brand-warn/30 text-amber-700 bg-amber-50 font-mono"
+                                : "border-brand-error/20 text-destructive bg-destructive/10 font-mono"
+                            }
+                          >
+                            {perf.avg_overall_score.toFixed(0)}
+                          </Badge>
+                        ) : (
+                          <span className="text-steel font-mono text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {perf?.total_conversations ?? 0}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+              <p className="text-sm font-medium text-steel">No salespeople in this store</p>
+              <p className="text-xs text-stone mt-1">Add team members to start tracking performance.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

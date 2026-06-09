@@ -5,6 +5,4 @@ scope:
     - apps/web/
 source_files: []
 depends_on: []
-related_to:
-    - path: api_service
-    - path: shared_package
+related_to: []

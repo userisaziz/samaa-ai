@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -13,12 +15,12 @@ class TokenResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     email: str
     full_name: str
     role: str
-    brand_id: str | None = None
-    store_id: str | None = None
+    brand_id: uuid.UUID | None = None
+    store_id: uuid.UUID | None = None
 
     model_config = {"from_attributes": True}
 

@@ -1,0 +1,1 @@
+Orchestrates a full-stack retail audio intelligence system by unifying a Next.js dashboard, Python AI analysis API, and shared TypeScript contracts into a cohesive monorepo.

@@ -21,25 +21,36 @@ SYSTEM_PROMPT = """You are an expert retail sales analyst. You analyze customer-
 You MUST respond with valid JSON matching this exact schema:
 {
     "intent": "Primary customer purchase intent or inquiry (one concise sentence)",
+    "customer_expectation": "What the customer expects or wants from the product/service (e.g. durability, warranty, features, style). One concise sentence or null if not clear",
     "products": ["product1", "product2"],
     "budget": "Budget range if mentioned (e.g. '$200-$500'), or null if not mentioned",
-    "objections": ["objection1", "objection2"],
+    "objections": [
+        {
+            "category": "Price|Features|Timing|Trust|Competitor|Other",
+            "issue": "The specific customer concern or objection",
+            "response": "How the salesperson addressed or responded to this objection"
+        }
+    ],
     "competitors": ["competitor1", "competitor2"],
     "closing_attempt": true,
     "outcome": "SALE_MADE" | "LOST" | "FOLLOW_UP_NEEDED",
+    "loss_reason": "If outcome is LOST, a concise explanation of why the sale was lost based on the conversation. null if outcome is not LOST",
     "confidence": 0-100,
     "summary": "One paragraph summary of the conversation",
-    "coaching_notes": "Specific coaching feedback for the salesperson based on their performance"
+    "coaching_notes": "Specific coaching feedback for the salesperson based on their performance. Reference actual conversation moments and suggest SOP-compliant alternatives where applicable."
 }
 
 Rules:
 - "outcome" must be exactly one of: SALE_MADE, LOST, FOLLOW_UP_NEEDED
 - "confidence" is your confidence (0-100) in the accuracy of this analysis
 - "products" should list specific products discussed or requested
-- "objections" should list customer reasons for not purchasing
+- "objections" must be an array of objects with category, issue, and response. If no objections, use empty array []
+- "category" must be one of: Price, Features, Timing, Trust, Competitor, Other
 - "competitors" should list competitor brands mentioned
 - "closing_attempt" is true if the salesperson attempted to close the sale
-- "coaching_notes" should be constructive and specific, referencing actual conversation moments
+- "loss_reason" should only be filled when outcome is LOST, otherwise null
+- "customer_expectation" captures what the customer is looking for or expects from the purchase
+- "coaching_notes" should be constructive and specific, referencing actual conversation moments and suggesting best-practice SOP responses
 - If the conversation is too short or unclear, set confidence below 85
 - Respond ONLY with valid JSON, no additional text"""
 
@@ -177,11 +188,31 @@ def _validate_analysis(analysis: dict[str, Any]) -> bool:
         analysis["confidence"] = max(0, min(100, int(confidence)))
 
     # Ensure list fields are lists
-    for field in ("products", "objections", "competitors"):
+    for field in ("products", "competitors"):
         if field not in analysis or analysis[field] is None:
             analysis[field] = []
         elif isinstance(analysis[field], str):
             analysis[field] = [analysis[field]]
+
+    # Handle objections: support both new structured objects and legacy strings
+    if "objections" not in analysis or analysis["objections"] is None:
+        analysis["objections"] = []
+    elif isinstance(analysis["objections"], str):
+        analysis["objections"] = [{"category": "Other", "issue": analysis["objections"], "response": ""}]
+    elif isinstance(analysis["objections"], list):
+        normalised = []
+        for obj in analysis["objections"]:
+            if isinstance(obj, str):
+                normalised.append({"category": "Other", "issue": obj, "response": ""})
+            elif isinstance(obj, dict):
+                normalised.append({
+                    "category": obj.get("category", "Other"),
+                    "issue": obj.get("issue", str(obj)),
+                    "response": obj.get("response", ""),
+                })
+            else:
+                normalised.append({"category": "Other", "issue": str(obj), "response": ""})
+        analysis["objections"] = normalised
 
     # Ensure boolean
     if "closing_attempt" not in analysis:
@@ -193,5 +224,10 @@ def _validate_analysis(analysis: dict[str, Any]) -> bool:
     for field in ("intent", "budget", "summary", "coaching_notes"):
         if field not in analysis or analysis[field] is None:
             analysis[field] = None if field in ("budget",) else ""
+
+    # New nullable string fields
+    for field in ("customer_expectation", "loss_reason"):
+        if field not in analysis or analysis[field] is None:
+            analysis[field] = None
 
     return True

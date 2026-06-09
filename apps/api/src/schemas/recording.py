@@ -1,24 +1,27 @@
+import uuid
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
 class RecordingResponse(BaseModel):
-    id: str
-    salesperson_id: str
+    id: uuid.UUID
+    salesperson_id: uuid.UUID
     file_url: str
     file_size: int | None = None
     duration_seconds: int | None = None
     format: str
     status: str
     error_message: str | None = None
-    uploaded_at: str
-    recorded_at: str | None = None
-    processed_at: str | None = None
+    uploaded_at: datetime
+    recorded_at: datetime | None = None
+    processed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
 
 class RecordingStatusResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     status: str
     error_message: str | None = None
 
@@ -26,8 +29,8 @@ class RecordingStatusResponse(BaseModel):
 
 
 class TranscriptSegmentResponse(BaseModel):
-    id: str
-    recording_id: str
+    id: uuid.UUID
+    recording_id: uuid.UUID
     speaker_label: str
     start_time: float
     end_time: float
@@ -37,13 +40,13 @@ class TranscriptSegmentResponse(BaseModel):
 
 
 class ConversationSummaryResponse(BaseModel):
-    id: str
-    recording_id: str
+    id: uuid.UUID
+    recording_id: uuid.UUID
     start_time: float
     end_time: float
     segment_count: int
     summary: str | None = None
-    created_at: str
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 

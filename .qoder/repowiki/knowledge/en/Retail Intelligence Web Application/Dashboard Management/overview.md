@@ -1,1 +1,1 @@
-Provides dashboard views for brand, store, and salesperson performance analytics with KPI tracking and data visualization.
+Provides role-based dashboards for brand, store, and salesperson performance monitoring with semantic search capabilities.

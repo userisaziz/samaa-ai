@@ -19,8 +19,10 @@ import { TranscriptViewer } from "@/components/features/transcript-viewer";
 import { ConversationTimeline } from "@/components/features/conversation-timeline";
 import { AIInsightsPanel } from "@/components/features/ai-insights-panel";
 import { ConversationDrawer } from "@/components/features/conversation-drawer";
+import { AnalysisDetail } from "@/components/features/analysis-detail";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mic, MessageSquare, Target, AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -123,7 +125,7 @@ export default function RecordingDetailPage() {
   }
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
@@ -134,7 +136,7 @@ export default function RecordingDetailPage() {
       />
 
       {/* Back button + Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link href={salesperson ? `/salesperson/${salesperson.id}` : "/recordings"}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-1 h-4 w-4" />
@@ -142,8 +144,8 @@ export default function RecordingDetailPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">Recording Detail</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Recording Detail</h1>
             {recording && <StatusBadge status={recording.status} />}
           </div>
           <p className="mt-1 text-sm text-steel">
@@ -245,6 +247,41 @@ export default function RecordingDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Analysis Detail Sections */}
+      {conversations && conversations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Conversation Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {conversations.length === 1 ? (
+              <AnalysisDetail
+                conversation={conversations[0]}
+                analysis={analyses.get(conversations[0].id) ?? null}
+              />
+            ) : (
+              <Tabs defaultValue={conversations[0].id}>
+                <TabsList className="mb-4">
+                  {conversations.map((conv, i) => (
+                    <TabsTrigger key={conv.id} value={conv.id} className="text-xs">
+                      Conversation {i + 1}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {conversations.map((conv) => (
+                  <TabsContent key={conv.id} value={conv.id}>
+                    <AnalysisDetail
+                      conversation={conv}
+                      analysis={analyses.get(conv.id) ?? null}
+                    />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Conversation Detail Drawer */}
       <ConversationDrawer

@@ -20,11 +20,11 @@
 
 ## Update Summary
 **Changes Made**
-- Removed advanced transcription, analysis, and CSV export endpoints
-- Simplified API to basic upload, status checking, and reprocessing endpoints
-- Removed complex processing pipeline orchestration
-- Streamlined authentication requirements for basic operations
-- Eliminated transcript, conversation, and summary endpoints
+- Added new API endpoints: upload_recording(), reprocess_recording(), and get_recording_status()
+- Enhanced endpoint catalog with comprehensive upload, status monitoring, and reprocessing capabilities
+- Integrated Celery pipeline orchestration for asynchronous processing
+- Implemented robust authentication and authorization with role-based access control
+- Added comprehensive error handling and validation for file uploads and processing workflows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -39,18 +39,19 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides comprehensive API documentation for audio recording management. The API has been simplified to focus on core recording operations: file upload, status tracking, and basic management functions. It covers endpoints for uploading audio recordings, tracking processing status, retrieving recording details, and managing audio files. It specifies HTTP methods, URL patterns, multipart form data handling, validation requirements, processing workflows, status transitions, error handling, and storage considerations.
+This document provides comprehensive API documentation for audio recording management. The API enables complete recording lifecycle management including file upload, status tracking, and reprocessing capabilities. It covers endpoints for uploading audio recordings, monitoring processing status through multiple pipeline stages, retrieving recording details, and managing audio files. The system supports asynchronous processing through a multi-stage pipeline with robust error handling and validation.
 
-**Updated** The API has been streamlined from a complex multi-stage processing system to a focused set of basic endpoints for recording management.
+**Updated** The API now includes comprehensive endpoint coverage for recording management with full pipeline integration and advanced processing capabilities.
 
 ## Project Structure
-The recording management API is implemented as part of the FastAPI backend under `/apps/api/src/api/v1/`. Key components include route handlers, models, schemas, services, workers, and storage abstractions.
+The recording management API is implemented as part of the FastAPI backend under `/apps/api/src/api/v1/`. Key components include route handlers, models, schemas, services, workers, and storage abstractions. The architecture follows a layered approach with clear separation of concerns between API handlers, business logic services, and processing workers.
 
 ```mermaid
 graph TB
 subgraph "API Layer"
 Routers["API Routers<br/>apps/api/src/api/v1/router.py"]
 RecordingsAPI["Recordings Router<br/>apps/api/src/api/v1/recordings.py"]
+AuthDeps["Authentication Dependencies<br/>apps/api/src/api/deps.py"]
 end
 subgraph "Domain Layer"
 Models["ORM Models<br/>apps/api/src/models/*.py"]
@@ -59,6 +60,7 @@ Services["Business Services<br/>apps/api/src/services/*.py"]
 end
 subgraph "Workers & Storage"
 Pipeline["Processing Pipeline<br/>apps/api/src/workers/pipeline.py"]
+Workers["Processing Workers<br/>apps/api/src/workers/*.py"]
 Storage["Storage Backend<br/>apps/api/src/storage/local.py"]
 end
 Routers --> RecordingsAPI
@@ -66,6 +68,7 @@ RecordingsAPI --> Services
 Services --> Models
 Services --> Storage
 RecordingsAPI --> Pipeline
+Pipeline --> Workers
 ```
 
 **Diagram sources**
@@ -76,20 +79,21 @@ RecordingsAPI --> Pipeline
 - [recording_service.py:1-262](file://apps/api/src/services/recording.py#L1-L262)
 - [pipeline.py:1-35](file://apps/api/src/workers/pipeline.py#L1-L35)
 - [local_storage.py:1-50](file://apps/api/src/storage/local.py#L1-L50)
+- [deps.py:1-67](file://apps/api/src/api/deps.py#L1-L67)
 
 **Section sources**
 - [router.py:1-20](file://apps/api/src/api/v1/router.py#L1-L20)
 - [README.md:1-308](file://README.md#L1-L308)
 
 ## Core Components
-- API Router: Exposes endpoints under `/api/v1/recordings` for upload, listing, and status checking.
-- Models: Define the recording lifecycle and basic metadata storage.
-- Schemas: Pydantic models for request/response validation and serialization.
-- Services: Encapsulate business logic for listing, creating, and updating recording status.
-- Workers/Pipeline: Orchestrates asynchronous processing stages via Celery.
-- Storage: Provides local file storage abstraction for uploaded audio.
+- **API Router**: Exposes endpoints under `/api/v1/recordings` for upload, listing, status checking, and reprocessing operations
+- **Models**: Define the recording lifecycle with comprehensive status tracking and metadata storage
+- **Schemas**: Pydantic models for request/response validation and serialization with detailed field definitions
+- **Services**: Encapsulate business logic for recording operations, status management, and pipeline coordination
+- **Workers/Pipeline**: Orchestrates asynchronous processing stages via Celery with six distinct processing stages
+- **Storage**: Provides local file storage abstraction with async/sync methods for uploaded audio files
 
-**Updated** The API now focuses on essential recording management functions, removing advanced transcription and analysis capabilities.
+**Updated** The API now provides comprehensive recording management with full pipeline integration and advanced processing capabilities.
 
 **Section sources**
 - [recordings.py:1-125](file://apps/api/src/api/v1/recordings.py#L1-L125)
@@ -100,11 +104,12 @@ RecordingsAPI --> Pipeline
 - [local_storage.py:1-50](file://apps/api/src/storage/local.py#L1-L50)
 
 ## Architecture Overview
-The recording management API follows a layered architecture:
-- HTTP requests are handled by FastAPI route handlers.
-- Handlers delegate to services for business logic.
-- Services interact with SQLAlchemy models and the storage backend.
-- The processing pipeline is orchestrated asynchronously via Celery.
+The recording management API follows a sophisticated layered architecture with asynchronous processing capabilities:
+- HTTP requests are handled by FastAPI route handlers with comprehensive validation
+- Handlers delegate to services for business logic with role-based authorization
+- Services interact with SQLAlchemy models and the storage backend
+- The processing pipeline is orchestrated asynchronously via Celery with six distinct stages
+- Real-time status tracking enables monitoring of processing progress
 
 ```mermaid
 sequenceDiagram
@@ -137,75 +142,82 @@ API-->>Client : "201 Created + RecordingResponse"
 ### Endpoint Catalog and Definitions
 
 #### Upload Recording
-- Method: POST
-- URL: `/api/v1/recordings/upload`
-- Content-Type: multipart/form-data
-- Required form fields:
+- **Method**: POST
+- **URL**: `/api/v1/recordings/upload`
+- **Content-Type**: multipart/form-data
+- **Required form fields**:
   - `file`: Audio file (allowed formats: wav, mp3, m4a)
   - `salesperson_id`: UUID of the salesperson
-- Optional form fields:
+- **Optional form fields**:
   - `recorded_at`: ISO 8601 timestamp indicating when the recording was made
-- Validation:
+- **Validation**:
   - Filename presence and extension validation against allowed formats
   - MIME-type compatibility with allowed audio types
   - `recorded_at` parsing to ISO 8601 datetime
-- Processing:
+- **Processing**:
   - Reads file bytes, stores via storage backend, creates recording record with status UPLOADED
   - Enqueues Celery pipeline; if Redis/Celery is unavailable, recording remains UPLOADED
-- Response: RecordingResponse
+- **Response**: RecordingResponse
+- **Authentication**: OPERATOR role required
 
-**Updated** Simplified from previous version with basic upload functionality only.
+**Updated** Enhanced with comprehensive validation and robust error handling for file uploads.
 
 **Section sources**
 - [recordings.py:56-84](file://apps/api/src/api/v1/recordings.py#L56-L84)
 - [recordings.py:35-36](file://apps/api/src/api/v1/recordings.py#L35-L36)
 
 #### List Recordings
-- Method: GET
-- URL: `/api/v1/recordings`
-- Query parameters:
+- **Method**: GET
+- **URL**: `/api/v1/recordings`
+- **Query parameters**:
   - `page`: integer (default: 1)
   - `page_size`: integer (default: 20)
   - `status`: string filter (enum values from RecordingStatus)
   - `salesperson_id`: UUID filter
   - `date_from`: ISO 8601 date
   - `date_to`: ISO 8601 date
-- Response: PaginatedRecordingsResponse
+- **Response**: PaginatedRecordingsResponse
+- **Authentication**: OPERATOR role required
 
 **Section sources**
 - [recordings.py:21-53](file://apps/api/src/api/v1/recordings.py#L21-L53)
 - [recording_service.py:18-61](file://apps/api/src/services/recording.py#L18-L61)
 
 #### Get Recording Detail
-- Method: GET
-- URL: `/api/v1/recordings/{recording_id}`
-- Path parameter:
+- **Method**: GET
+- **URL**: `/api/v1/recordings/{recording_id}`
+- **Path parameter**:
   - `recording_id`: UUID
-- Response: RecordingResponse
+- **Response**: RecordingResponse
+- **Authentication**: SALESPERSON role required
 
 **Section sources**
 - [recordings.py:86-95](file://apps/api/src/api/v1/recordings.py#L86-L95)
 - [recording_service.py:64-68](file://apps/api/src/services/recording.py#L64-L68)
 
 #### Get Recording Status
-- Method: GET
-- URL: `/api/v1/recordings/{recording_id}/status`
-- Path parameter:
+- **Method**: GET
+- **URL**: `/api/v1/recordings/{recording_id}/status`
+- **Path parameter**:
   - `recording_id`: UUID
-- Response: RecordingStatusResponse
+- **Response**: RecordingStatusResponse
+- **Authentication**: SALESPERSON role required
+- **Purpose**: Monitor processing progress through pipeline stages
 
 **Section sources**
 - [recordings.py:98-107](file://apps/api/src/api/v1/recordings.py#L98-L107)
 
 #### Reprocess Recording
-- Method: POST
-- URL: `/api/v1/recordings/{recording_id}/reprocess`
-- Path parameter:
+- **Method**: POST
+- **URL**: `/api/v1/recordings/{recording_id}/reprocess`
+- **Path parameter**:
   - `recording_id`: UUID
-- Behavior:
+- **Behavior**:
   - Resets status to UPLOADED and clears error message
   - Re-enqueues pipeline; if Redis/Celery unavailable, logs warning
-- Response: RecordingResponse
+  - Only allows reprocessing for FAILED or COMPLETED recordings
+- **Response**: RecordingResponse
+- **Authentication**: BRAND_ADMIN role required
 
 **Section sources**
 - [recordings.py:110-125](file://apps/api/src/api/v1/recordings.py#L110-L125)
@@ -298,16 +310,23 @@ SCORING --> FAILED : "error"
 - [pipeline.py:12-34](file://apps/api/src/workers/pipeline.py#L12-L34)
 
 ### Authentication and Authorization
-- Authentication: Bearer token via Authorization header
-- Authorization roles: SUPER_ADMIN, BRAND_ADMIN, STORE_MANAGER, SALESPERSON (require_salesperson_up)
+- **Authentication**: Bearer token via Authorization header
+- **Authorization roles**:
+  - SUPER_ADMIN: Full access to all operations
+  - BRAND_ADMIN: Access to reprocessing and admin operations
+  - STORE_MANAGER: Access to recording management within store
+  - SALESPERSON: View-only access to their own recordings
+  - OPERATOR: Upload and listing operations
+- **Role-based endpoint access**: Different endpoints require different permission levels
 
 **Section sources**
-- [deps.py:1-63](file://apps/api/src/api/deps.py#L1-L63)
+- [deps.py:1-67](file://apps/api/src/api/deps.py#L1-L67)
 
 ### Storage Management
-- Storage backend: configurable (local by default)
-- Local storage writes files to `./uploads` (configurable via `LOCAL_UPLOAD_DIR`)
-- Storage interface supports async upload/download/delete and sync methods for workers
+- **Storage backend**: Configurable (local by default)
+- **Local storage**: Writes files to `./uploads` (configurable via `LOCAL_UPLOAD_DIR`)
+- **Storage interface**: Supports async upload/download/delete and sync methods for workers
+- **File handling**: Automatic filename generation with UUID-based naming
 
 **Section sources**
 - [local_storage.py:1-50](file://apps/api/src/storage/local.py#L1-L50)
@@ -328,10 +347,14 @@ Service["Recording Service<br/>apps/api/src/services/recording.py"]
 Storage["Local Storage<br/>apps/api/src/storage/local.py"]
 DB["PostgreSQL<br/>SQLAlchemy ORM"]
 Pipeline["Celery Pipeline<br/>apps/api/src/workers/pipeline.py"]
+Workers["Processing Workers<br/>apps/api/src/workers/*.py"]
+Auth["Authentication<br/>apps/api/src/api/deps.py"]
 Handler --> Service
 Service --> DB
 Handler --> Storage
 Handler --> Pipeline
+Pipeline --> Workers
+Service --> Auth
 ```
 
 **Diagram sources**
@@ -339,31 +362,40 @@ Handler --> Pipeline
 - [recording_service.py:1-14](file://apps/api/src/services/recording.py#L1-L14)
 - [local_storage.py:1-50](file://apps/api/src/storage/local.py#L1-L50)
 - [pipeline.py:1-35](file://apps/api/src/workers/pipeline.py#L1-L35)
+- [deps.py:1-67](file://apps/api/src/api/deps.py#L1-L67)
 
 **Section sources**
 - [recordings.py:1-35](file://apps/api/src/api/v1/recordings.py#L1-L35)
 - [recording_service.py:1-14](file://apps/api/src/services/recording.py#L1-L14)
 - [local_storage.py:1-50](file://apps/api/src/storage/local.py#L1-L50)
 - [pipeline.py:1-35](file://apps/api/src/workers/pipeline.py#L1-L35)
+- [deps.py:1-67](file://apps/api/src/api/deps.py#L1-L67)
 
 ## Performance Considerations
-- Asynchronous processing: Upload returns immediately while long-running pipeline executes in Celery workers.
-- Pagination: Listing endpoints support pagination to limit response sizes.
-- Embeddings: Transcript segments include vector embeddings for efficient semantic search.
+- **Asynchronous processing**: Upload returns immediately while long-running pipeline executes in Celery workers
+- **Pagination**: Listing endpoints support pagination to limit response sizes
+- **Embeddings**: Transcript segments include vector embeddings for efficient semantic search
+- **Pipeline optimization**: Six-stage processing pipeline with specialized workers for each operation
+- **Error resilience**: Graceful handling of Redis/Celery unavailability with UPLOADED status retention
 
-**Updated** Removed streaming responses and export capabilities as they are no longer part of the simplified API.
+**Updated** Enhanced with comprehensive pipeline orchestration and performance optimizations.
 
 ## Troubleshooting Guide
-- Upload failures:
+- **Upload failures**:
   - Invalid file format or missing filename: handler raises 400 with detailed message
   - Invalid `recorded_at` format: handler raises 400 with ISO 8601 requirement
   - Redis/Celery unavailable: pipeline enqueue fails silently; recording remains UPLOADED
-- Status polling:
-  - Use `/recordings/{id}/status` to track progress; status transitions are defined in RecordingStatus
-- Re-processing:
-  - Use `/recordings/{id}/reprocess` to restart pipeline for failed or stale recordings
+- **Status polling**:
+  - Use `/recordings/{id}/status` to track progress through six pipeline stages
+  - Status transitions: UPLOADED → PREPROCESSING → TRANSCRIBING → DIARIZING → SEGMENTING → ANALYZING → SCORING → COMPLETED
+- **Re-processing**:
+  - Use `/recordings/{id}/reprocess` to restart pipeline for FAILED or COMPLETED recordings
+  - Only available to BRAND_ADMIN users
+- **Authentication issues**:
+  - Ensure proper bearer token with required role permissions
+  - Check role requirements for each endpoint
 
-**Updated** Removed export-related troubleshooting as CSV export functionality has been removed.
+**Updated** Enhanced with comprehensive troubleshooting for new pipeline and authentication features.
 
 **Section sources**
 - [recordings.py:64-84](file://apps/api/src/api/v1/recordings.py#L64-L84)
@@ -372,22 +404,26 @@ Handler --> Pipeline
 - [recording.py:12-22](file://apps/api/src/models/recording.py#L12-L22)
 
 ## Conclusion
-The Recording Management API provides a streamlined foundation for audio ingestion and basic management. It enforces strict validation, offers flexible filtering capabilities, and integrates seamlessly with a multi-stage AI pipeline. The simplified endpoints, schemas, and workflows enable reliable integration for upload, monitoring, and basic status tracking.
+The Recording Management API provides a comprehensive foundation for audio ingestion and advanced processing management. It enforces strict validation, offers flexible filtering capabilities, integrates seamlessly with a sophisticated six-stage AI pipeline, and maintains robust security through role-based access control. The API supports real-time status monitoring, comprehensive error handling, and scalable asynchronous processing for reliable integration across various deployment scenarios.
 
-**Updated** The API has been successfully simplified to focus on essential recording management functions while maintaining robust processing capabilities.
+**Updated** The API has been successfully enhanced with comprehensive endpoint coverage and advanced processing capabilities while maintaining robust security and performance characteristics.
 
 ## Appendices
 
 ### Audio Format Requirements
-- Allowed extensions: wav, mp3, m4a
-- MIME types: audio/wav, audio/mpeg, audio/mp4, audio/x-m4a, audio/mp3
+- **Allowed extensions**: wav, mp3, m4a
+- **MIME types**: audio/wav, audio/mpeg, audio/mp4, audio/x-m4a, audio/mp3
+- **File size limits**: Controlled by application configuration
+- **Duration tracking**: Automatically calculated during preprocessing stage
 
 **Section sources**
 - [recordings.py:35-36](file://apps/api/src/api/v1/recordings.py#L35-L36)
 - [PRD.md:68-80](file://docs/SAMAA_PRD.md#L68-L80)
 
 ### Progress Tracking Pattern
-- After upload, poll `/api/v1/recordings/{id}/status` to monitor status transitions until completion or failure.
+- **After upload**, poll `/api/v1/recordings/{id}/status` to monitor status transitions
+- **Real-time monitoring**: Six distinct pipeline stages with detailed status tracking
+- **Error reporting**: Comprehensive error messages with stack traces for debugging
 
 **Section sources**
 - [recordings.py:98-107](file://apps/api/src/api/v1/recordings.py#L98-L107)
@@ -395,3 +431,14 @@ The Recording Management API provides a streamlined foundation for audio ingesti
 
 ### Batch Operations Examples
 **Updated** Removed batch operations examples as CSV export functionality has been removed from the simplified API.
+
+### Pipeline Stage Details
+- **Preprocessing**: Audio normalization, resampling, and silence detection
+- **Transcription**: NVIDIA Parakeet STT for speech-to-text conversion
+- **Diarization**: Speaker diarization using NVIDIA NeMo
+- **Segmentation**: Conversation boundary detection and segmentation
+- **Analysis**: Llama 3.3 analysis for intent and objection identification
+- **Scoring**: Performance scoring and coaching recommendations
+
+**Section sources**
+- [pipeline.py:12-34](file://apps/api/src/workers/pipeline.py#L12-L34)

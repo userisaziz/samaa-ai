@@ -1,6 +1,6 @@
 "use client";
 
-import type { Conversation, ConversationAnalysis } from "@samaa/shared";
+import type { Conversation, ConversationAnalysis, StructuredObjection } from "@samaa/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -124,7 +124,7 @@ export function AIInsightsPanel({
                       <ul className="ml-5 space-y-0.5">
                         {analysis.objections.map((o, i) => (
                           <li key={i} className="text-xs text-muted-foreground">
-                            {o}
+                            {typeof o === "string" ? o : (o as StructuredObjection).issue}
                           </li>
                         ))}
                       </ul>

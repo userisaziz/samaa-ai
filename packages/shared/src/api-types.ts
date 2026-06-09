@@ -153,16 +153,24 @@ export interface Conversation {
   created_at: string;
 }
 
+export interface StructuredObjection {
+  category: string;
+  issue: string;
+  response: string;
+}
+
 export interface ConversationAnalysis {
   id: string;
   conversation_id: string;
   intent: string | null;
+  customer_expectation: string | null;
   products: string[];
   budget: string | null;
-  objections: string[];
+  objections: Array<string | StructuredObjection>;
   competitors: string[];
   closing_attempt: boolean;
   outcome: Outcome | null;
+  loss_reason: string | null;
   confidence: number | null;
   scores: PerformanceScores | null;
   summary: string | null;
@@ -224,4 +232,64 @@ export interface PaginatedResponse<T> {
   page: number;
   page_size: number;
   total_pages: number;
+}
+
+// --- Analytics ---
+export interface OutcomeCount {
+  outcome: string;
+  count: number;
+}
+
+export interface ObjectionCount {
+  objection: string;
+  count: number;
+}
+
+export interface FunnelStage {
+  stage: string;
+  count: number;
+}
+
+export interface TrendPoint {
+  date: string;
+  avg_score: number | null;
+  conversion_rate: number | null;
+  conversation_count: number;
+}
+
+export interface StoreComparisonItem {
+  store_id: string;
+  store_name: string;
+  avg_score: number | null;
+  conversion_rate: number | null;
+  total_conversations: number;
+}
+
+export interface AnalyticsOverviewResponse {
+  outcome_distribution: OutcomeCount[];
+  top_objections: ObjectionCount[];
+  funnel_stages: FunnelStage[];
+  score_trend: TrendPoint[];
+  volume_trend: TrendPoint[];
+  store_comparison: StoreComparisonItem[];
+  total_conversations: number;
+  avg_confidence: number | null;
+  conversion_rate: number | null;
+}
+
+export interface SalespersonComparisonItem {
+  salesperson_id: string;
+  name: string;
+  total_conversations: number;
+  avg_overall_score: number | null;
+  conversion_rate: number | null;
+  avg_greeting_score: number | null;
+  avg_discovery_score: number | null;
+  avg_product_knowledge_score: number | null;
+  avg_objection_handling_score: number | null;
+  avg_closing_score: number | null;
+}
+
+export interface AnalyticsSalespeopleResponse {
+  salespeople: SalespersonComparisonItem[];
 }

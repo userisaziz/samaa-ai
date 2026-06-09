@@ -1,5 +1,5 @@
-- Entry point `src/main.py` initializes a FastAPI application and mounts the v1 router defined in `src/api/v1/router.py`.
-- Dependency injection in `src/api/deps.py` enforces JWT-based authentication and role-based access control (RBAC) for protected endpoints.
-- Business logic is encapsulated in `src/services/`, while `src/models/` defines SQLAlchemy ORM entities and `src/schemas/` handles Pydantic validation.
-- Asynchronous audio processing is offloaded to Celery workers (`src/workers/`) using a Redis broker, executing a chained pipeline of preprocessing, STT, diarization, segmentation, and AI analysis.
-- Database interactions use async SQLAlchemy with PostgreSQL, managed via `src/database.py` and migrated through Alembic.
+- Entry point: `src/main.py` initializes a FastAPI application with CORS middleware and includes the v1 API router defined in `src/api/v1/router.py`.
+- Layered structure: `src/api/` handles HTTP routing and dependency injection (auth, DB sessions); `src/services/` contains business logic; `src/models/` defines SQLAlchemy ORM entities; `src/schemas/` manages Pydantic validation models.
+- Async processing: Long-running AI tasks (STT, diarization, analysis) are offloaded to Celery workers (`src/workers/`) using a Redis broker/backend, orchestrated via a chained pipeline in `src/workers/pipeline.py`.
+- Data persistence: Uses SQLAlchemy with an async PostgreSQL engine (`src/database.py`) and Alembic for schema migrations (`alembic/`).
+- Configuration: Centralized in `src/config.py` using `pydantic-settings` for environment variable management.

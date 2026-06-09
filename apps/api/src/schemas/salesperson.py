@@ -1,3 +1,6 @@
+import uuid
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -19,15 +22,15 @@ class SalespersonUpdate(BaseModel):
 
 
 class SalespersonResponse(BaseModel):
-    id: str
-    store_id: str
+    id: uuid.UUID
+    store_id: uuid.UUID
     name: str
     email: str | None = None
     role: str | None = None
     shift: str | None = None
     device_number: str | None = None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

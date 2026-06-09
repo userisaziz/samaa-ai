@@ -1,1 +1,1 @@
-Provides REST endpoints and asynchronous workers for uploading, transcribing, and analyzing retail sales audio recordings.
+Provides REST endpoints for managing sales audio recordings and orchestrates asynchronous AI-driven analysis pipelines including transcription, diarization, and performance scoring.

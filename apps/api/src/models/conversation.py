@@ -46,6 +46,8 @@ class ConversationAnalysis(Base):
     competitors: Mapped[list | None] = mapped_column(JSONB, default=lambda: [])
     closing_attempt: Mapped[bool] = mapped_column(Boolean, default=False)
     outcome: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    loss_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    customer_expectation: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence: Mapped[int | None] = mapped_column(Integer, nullable=True)
     scores: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)

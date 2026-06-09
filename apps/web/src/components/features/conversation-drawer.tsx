@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { Conversation, ConversationAnalysis, TranscriptSegment } from "@samaa/shared";
+import type { Conversation, ConversationAnalysis, TranscriptSegment, StructuredObjection } from "@samaa/shared";
 import { api } from "@/lib/api-client";
 import {
   Sheet,
@@ -139,7 +139,7 @@ export function ConversationDrawer({ conversation, open, onOpenChange }: Convers
                   <ul className="ml-5 space-y-1">
                     {analysis.objections.map((o, i) => (
                       <li key={i} className="text-sm text-muted-foreground">
-                        {o}
+                        {typeof o === "string" ? o : (o as StructuredObjection).issue}
                       </li>
                     ))}
                   </ul>

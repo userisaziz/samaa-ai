@@ -56,16 +56,16 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
       <div>
-        <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">Semantic Search</h1>
+        <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Semantic Search</h1>
         <p className="mt-1 text-sm text-steel">
           Search across all conversation transcripts using natural language
         </p>
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearch} className="flex gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -81,9 +81,9 @@ export default function SearchPage() {
       </form>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <Select value={outcomeFilter} onValueChange={(v) => { setOutcomeFilter(v || ""); if (v !== undefined) setSearchTerm(query); }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="All Outcomes" />
           </SelectTrigger>
           <SelectContent>

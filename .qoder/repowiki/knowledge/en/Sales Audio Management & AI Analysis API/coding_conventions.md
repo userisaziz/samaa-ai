@@ -1,0 +1,3 @@
+- Dependency injection is used for database sessions and current user authentication in API route handlers via FastAPI's `Depends`.
+- Service layer functions are implemented as async methods that accept an `AsyncSession` as the first argument for database interactions.
+- Pydantic models in `src/schemas/` are used for both request validation and response serialization, mirroring the structure of domain models.

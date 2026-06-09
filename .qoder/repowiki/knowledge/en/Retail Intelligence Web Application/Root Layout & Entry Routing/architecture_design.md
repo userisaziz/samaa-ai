@@ -1,4 +1,4 @@
-- The module serves as the Next.js App Router entry point, with `layout.tsx` establishing the HTML shell, font configuration (Inter, Geist Mono), and metadata.
-- It wraps the application content in a `Providers` component imported from `@/components/providers`, indicating a boundary for context providers (e.g., theme, auth).
-- `page.tsx` acts as the root route handler, implementing client-side hydration of the auth store (`useAuthStore`) and performing role-based redirects to specific dashboard routes (`/brand`, `/store/:id`, etc.).
-- `globals.css` configures the design system using Tailwind CSS v4 syntax (`@theme inline`) and OKLCH color spaces, defining both light and dark mode variables for consistent theming across the application.
+- The module serves as the Next.js App Router entry point, with `layout.tsx` establishing the HTML shell, font loading (Geist Mono), and metadata.
+- It wraps the application in a `Providers` component for context management.
+- `page.tsx` acts as the root route handler, performing client-side hydration of the auth store and redirecting users to role-specific dashboards.
+- `globals.css` configures the design system using Tailwind CSS v4 syntax, defining OKLCH-based color tokens, typography, and dark mode variants.

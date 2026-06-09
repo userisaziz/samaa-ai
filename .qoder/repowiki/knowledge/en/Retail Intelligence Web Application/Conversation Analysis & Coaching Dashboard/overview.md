@@ -1,1 +1,1 @@
-Provides recording management, conversation-level AI insights visualization, and salesperson coaching performance dashboards with skill scoring and recommendations.
+Provides recording management, conversation timeline visualization, AI-powered insights, and salesperson coaching dashboards for analyzing customer interactions.

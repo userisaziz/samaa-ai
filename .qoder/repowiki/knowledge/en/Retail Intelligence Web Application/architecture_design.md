@@ -1,4 +1,4 @@
-- Leverages Next.js App Router with route groups (`(auth)`, `(dashboard)`, `(operations)`) to enforce layout isolation and modular feature development.
-- Centralizes client-side session management via `middleware.ts` (pass-through) and `AuthGuard` components, relying on `localStorage` for token persistence rather than HTTP-only cookies.
-- Provides a unified `api-client` with automatic JWT refresh logic, serving as the single data-fetching contract for all dashboard and conversation modules.
-- Uses a root `Providers` component to inject global context (theme, auth state) into the application shell, ensuring consistent state access across nested layouts.
+- **Client-Side Auth Enforcement**: Authentication is enforced at the component level via `AuthGuard` rather than server-side middleware, relying on client-side state (Zustand) and local storage for session persistence.
+- **Unified Provider Hierarchy**: The root layout wraps all application content in a shared `Providers` component, injecting a configured `TanStack Query` client for data fetching and `TooltipProvider` for UI accessibility across all modules.
+- **Monorepo Integration**: Depends on a shared internal package (`@samaa/shared`) for cross-cutting concerns, ensuring consistent API client behavior and type definitions across the web app and other potential services.
+- **Route Grouping Strategy**: Uses Next.js route groups `(auth)`, `(dashboard)`, and `(operations)` to logically separate layout contexts and access requirements without affecting URL paths, allowing distinct sidebar and navigation structures for different user roles.

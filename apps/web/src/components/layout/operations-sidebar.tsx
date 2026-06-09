@@ -4,6 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { Upload, List, LogOut, Headphones } from "lucide-react";
+
+function getInitials(name?: string | null): string {
+  if (!name) return "??";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -68,13 +78,13 @@ export function OperationsSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   isActive
-                    ? "bg-brand-green-soft text-ink border-l-2 border-brand-green"
-                    : "text-steel hover:bg-secondary/70 hover:text-charcoal border-l-2 border-transparent",
+                    ? "bg-brand-green-soft text-ink font-medium"
+                    : "text-steel font-normal hover:bg-secondary/70 hover:text-charcoal",
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className={cn("h-4 w-4", isActive ? "text-brand-green-deep" : "")} />
                 {item.label}
               </Link>
             );
@@ -86,9 +96,14 @@ export function OperationsSidebar() {
 
       {/* User section */}
       <div className="p-4">
-        <div className="mb-3 space-y-0.5">
-          <p className="text-sm font-medium text-ink">{user?.full_name}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-steel">Operations</p>
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-ink">
+            {getInitials(user?.full_name)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-ink">{user?.full_name}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-steel">Operations</p>
+          </div>
         </div>
         <Button
           variant="outline"

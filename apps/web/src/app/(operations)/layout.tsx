@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { OperationsSidebar } from "@/components/layout/operations-sidebar";
+import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { useAuthStore } from "@/store/auth";
 
 export default function OperationsLayout({
@@ -29,7 +30,16 @@ export default function OperationsLayout({
   return (
     <AuthGuard>
       <div className="flex h-screen overflow-hidden">
-        <OperationsSidebar />
+        {/* Desktop sidebar (lg+) */}
+        <aside className="hidden lg:flex lg:shrink-0 lg:h-full">
+          <OperationsSidebar />
+        </aside>
+
+        {/* Mobile sidebar drawer (< lg) */}
+        <MobileSidebar>
+          <OperationsSidebar />
+        </MobileSidebar>
+
         <main className="flex-1 overflow-y-auto bg-surface-soft">
           {children}
         </main>

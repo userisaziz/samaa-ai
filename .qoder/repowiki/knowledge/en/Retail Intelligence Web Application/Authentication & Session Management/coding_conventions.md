@@ -1,3 +1,2 @@
-- All module files use the "use client" directive at the top, indicating client-side-only execution in the Next.js App Router.
-- The auth store centralizes all token and user state mutations — login, logout, and hydrate are the only entry points for changing auth state.
-- Route guards check authentication status after hydration completes, using an isLoading flag to prevent premature redirects during session restoration.
+- Persisting authentication credentials (access token, refresh token, user object) in browser `localStorage` for session continuity across reloads.
+- Implementing automatic token refresh logic within the API client when encountering 401 Unauthorized responses before failing the request.

@@ -1,1 +1,1 @@
-Handles user login, session persistence via localStorage, and route-level authentication guarding for protected application areas.
+Manages user authentication state, session persistence via local storage, and route-level access control for the web application.

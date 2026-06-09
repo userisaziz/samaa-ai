@@ -1,4 +1,4 @@
-- All page components use the "use client" directive and rely on React Query's useQuery hook for data fetching with typed API responses from @samaa/shared.
-- Performance score badges use consistent color-coding thresholds: green for scores >= 80, amber for scores >= 60, and red for scores below 60.
-- Empty state handling follows a pattern of displaying centered muted text messages within table bodies or card content areas when no data is available.
-- Page layouts consistently use a space-y-6 container with p-6 padding, starting with a header section containing a title and subtitle description.
+- Uses 'use client' directive in all page components to enable client-side hooks and interactivity.
+- Standardizes on `@tanstack/react-query` useQuery hook for all data fetching operations with consistent query key structures.
+- Implements conditional rendering for loading states using Skeleton components or empty state placeholders with 'Inbox' icons.
+- Applies consistent typography classes such as 'text-[28px] font-semibold tracking-tight' for page headers across all views.

@@ -29,25 +29,25 @@ colors:
   destructive: "oklch(0.6 0.22 25)"
 typography:
   body:
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Gellix, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "0"
   headline:
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Gellix, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "28px"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "-0.02em"
   title:
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Gellix, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "18px"
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: "0"
   label:
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontFamily: "Gellix, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "11px"
     fontWeight: 600
     lineHeight: 1.4
@@ -108,7 +108,7 @@ Soft layering creates hierarchy without heaviness. Cards float subtly above the 
 **Key Characteristics:**
 - Mint-green brand accent (`{colors.brand-green}`) reserved for active states, focus rings, and positive indicators
 - Black primary buttons (`{colors.primary}`) for decisive CTAs across all surfaces
-- Inter for all UI prose and headings; Geist Mono for data values, code, and type signatures
+- Gellix for all UI prose and headings; Geist Mono for data values, code, and type signatures
 - Soft elevation via subtle shadows on cards and interactive containers
 - shadcn/ui component foundation with custom semantic color tokens
 - Dashboard shell: fixed 256px sidebar with flex-1 scrollable content area
@@ -147,11 +147,11 @@ The palette is an analytical instrument: neutral grays carry information density
 
 ## 3. Typography
 
-**Display Font:** Inter (with -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)
-**Body Font:** Inter (with -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)
+**Display Font:** Gellix (via Fontshare CDN, weights 400/500/600/700)
+**Body Font:** Gellix (with -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)
 **Mono Font:** Geist Mono (with 'SF Mono', Menlo, Consolas, monospace)
 
-**Character:** Inter carries the full UI hierarchy through weight contrast (400/500/600) rather than introducing a display face. This single-family approach signals tool-grade consistency. Geist Mono appears only for data values, scores, timestamps, and inline code, creating a clear "this is a measured value" signal.
+**Character:** Gellix is a geometric sans-serif that carries the full UI hierarchy through weight contrast (400/500/600/700) rather than introducing a display face. Its geometric precision signals tool-grade consistency while feeling warmer than Inter. Geist Mono appears only for data values, scores, timestamps, and inline code, creating a clear "this is a measured value" signal.
 
 ### Hierarchy
 - **Page Title** (600, 28px, 1.25 line-height, -0.02em tracking): Dashboard page headers. The largest type on any screen.
@@ -162,7 +162,7 @@ The palette is an analytical instrument: neutral grays carry information density
 - **Mono Data** (400, 13px, 1.5 line-height): Scores, timestamps, confidence values, transcript timestamps. Geist Mono signals "this is a measured/computed value."
 
 ### Named Rules
-**The Two-Face Rule.** Inter for human language, Geist Mono for machine values. A score of "87" in Geist Mono says "this was computed." The same "87" in Inter says "someone typed this." The typeface IS the data provenance signal.
+**The Two-Face Rule.** Gellix for human language, Geist Mono for machine values. A score of "87" in Geist Mono says "this was computed." The same "87" in Gellix says "someone typed this." The typeface IS the data provenance signal.
 
 **The Uppercase Ceiling Rule.** Uppercase text is limited to 11px labels with wide tracking (section headers, role tags). No all-caps body copy, no uppercase button labels, no uppercase navigation items. Uppercase above 11px is shouting.
 
@@ -212,19 +212,19 @@ SAMAA uses soft layering: subtle, diffused shadows that create gentle separation
 
 ### Navigation
 - **Sidebar:** Fixed 256px width, `{colors.canvas}` background, right border in `{colors.hairline}`. Logo mark (36x36px primary bg with icon) + "SAMAA" wordmark at top.
-- **Nav Items:** 14px medium weight, steel text, rounded-md with 8px vertical padding. Active state: brand-green-soft background, ink text, 2px left border in brand-green. Inactive: transparent background, transparent left border.
+- **Nav Items:** 14px medium weight, steel text, rounded-lg with 8px vertical padding. Active state: brand-green-soft background fill, ink text, brand-green-deep icon color. No side-stripe borders. Inactive: transparent background with hover fill.
 - **Section Headers:** 11px uppercase tracking-widest steel text above nav groups.
-- **User Footer:** Separator + user name (14px medium ink) + role label (11px uppercase steel) + outline sign-out button.
+- **User Footer:** Separator + user avatar circle (initials) + user name (14px medium ink) + role label (11px uppercase steel) + outline sign-out button.
 - **Breadcrumbs:** 14px steel text with chevron separators. Active breadcrumb in ink (medium weight). Hover transitions to ink.
 
-### Login Card
-- **Signature treatment:** Centered card on atmospheric sky gradient (`hero-sky-from` to `hero-sky-to` to white). 1px brand-green accent bar at card top. Large icon mark (56x56px primary bg) + "SAMAA" title (28px semibold) + subtitle (steel). Card shadow is the deepest in the system.
+### Login Page
+- **Signature treatment:** Split-layout design. Left panel (hidden on mobile, lg+ only): dark gradient background (canvas-dark to charcoal), animated waveform audio visualization, feature pills with icons. Right panel: clean form area with centered card, password visibility toggle, brand mark and wordmark at top.
 
 ## 6. Do's and Don'ts
 
 ### Do:
 - **Do** use `{colors.brand-green}` sparingly. Count mint-colored elements per viewport: 3-4 is the ceiling. Its rarity IS the brand signal.
-- **Do** pair Inter for all UI prose and Geist Mono for all computed/measured values. The typeface switch tells the user "this number came from the AI pipeline."
+- **Do** pair Gellix for all UI prose and Geist Mono for all computed/measured values. The typeface switch tells the user "this number came from the AI pipeline."
 - **Do** maintain 7:1 contrast ratio on body text (WCAG AAA). Charcoal (`{colors.charcoal}`) on white canvas passes. Never use Steel or Stone for body copy.
 - **Do** use `{colors.surface-soft}` as the dashboard content background. White cards on soft gray creates depth through contrast, not shadow alone.
 - **Do** encode every status with both color AND text. The COMPLETED badge is green AND says "Completed." Color-blind users get the same information.
@@ -236,6 +236,6 @@ SAMAA uses soft layering: subtle, diffused shadows that create gentle separation
 - **Don't** introduce pill-shaped buttons. The dashboard uses `{rounded.md}` (8px), not `{rounded.full}`. Pill shapes signal marketing/landing context, not analytical tools.
 - **Don't** use all-caps text above 11px. Button labels, nav items, and section titles stay in sentence case. Only micro-labels (sidebar section headers, role tags) use uppercase.
 - **Don't** use glassmorphism, gradient text, or decorative blur effects. The Analyst's Workbench is solid, grounded, and functional. Transparency effects belong in marketing, not data tools.
-- **Don't** use side-stripe borders (`border-left` > 1px as colored accent) on cards or list items. The sidebar active indicator is the sole exception in the entire system.
+- **Don't** use side-stripe borders (`border-left` > 1px as colored accent) on cards or list items. The system uses fill-based active states instead of border indicators.
 - **Don't** create identical card grids (same-sized cards with icon + heading + text repeated endlessly). Vary card sizes and content based on data importance and hierarchy.
 - **Don't** use heavy drop shadows. The deepest shadow in the system (`0 8px 24px rgba(0,0,0,0.12)`) is reserved for floating popovers. Cards whisper, they don't shout.

@@ -103,12 +103,14 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
         if existing:
             # Update existing
             existing.intent = analysis.get("intent")
+            existing.customer_expectation = analysis.get("customer_expectation")
             existing.products = analysis.get("products", [])
             existing.budget = analysis.get("budget")
             existing.objections = analysis.get("objections", [])
             existing.competitors = analysis.get("competitors", [])
             existing.closing_attempt = analysis.get("closing_attempt", False)
             existing.outcome = analysis.get("outcome")
+            existing.loss_reason = analysis.get("loss_reason")
             existing.confidence = analysis.get("confidence")
             existing.summary = analysis.get("summary")
             existing.coaching_notes = analysis.get("coaching_notes")
@@ -117,12 +119,14 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
             ca = ConversationAnalysis(
                 conversation_id=uuid.UUID(conversation_id),
                 intent=analysis.get("intent"),
+                customer_expectation=analysis.get("customer_expectation"),
                 products=analysis.get("products", []),
                 budget=analysis.get("budget"),
                 objections=analysis.get("objections", []),
                 competitors=analysis.get("competitors", []),
                 closing_attempt=analysis.get("closing_attempt", False),
                 outcome=analysis.get("outcome"),
+                loss_reason=analysis.get("loss_reason"),
                 confidence=analysis.get("confidence"),
                 summary=analysis.get("summary"),
                 coaching_notes=analysis.get("coaching_notes"),

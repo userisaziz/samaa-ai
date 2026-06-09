@@ -8,5 +8,10 @@ scope:
 source_files: []
 depends_on: []
 related_to:
-    - path: web_app/dashboard_layout
     - path: web_app/app_shell
+    - path: web_app/dashboard_layout
+    - path: web_app/dashboard_management
+    - path: web_app/dashboard_conversations
+    - path: web_app/shared_ui_lib
+    - path: api_service
+    - path: shared_package

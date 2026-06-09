@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { api } from "@/lib/api-client";
-import type { Salesperson, SalespersonPerformance } from "@samaa/shared";
+import type { Salesperson, SalespersonPerformance, AnalyticsOverviewResponse } from "@samaa/shared";
 import { KPICard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ScoreTrend } from "@/components/charts/score-trend";
+import { ConversionGauge } from "@/components/charts/conversion-gauge";
 import {
   Select,
   SelectContent,
@@ -29,6 +31,7 @@ import {
   AlertTriangle,
   Brain,
   Lightbulb,
+  Inbox,
 } from "lucide-react";
 import {
   RadarChart,
@@ -37,25 +40,7 @@ import {
   PolarRadiusAxis,
   Radar,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
 } from "recharts";
-
-// Mock trend data (will be replaced with real API data in Sprint 6)
-const mockTrendData = [
-  { week: "W1", score: 62 },
-  { week: "W2", score: 65 },
-  { week: "W3", score: 61 },
-  { week: "W4", score: 68 },
-  { week: "W5", score: 72 },
-  { week: "W6", score: 70 },
-  { week: "W7", score: 74 },
-  { week: "W8", score: 76 },
-];
 
 const SKILL_LABELS: Record<string, string> = {
   avg_greeting_score: "Greeting",
@@ -92,6 +77,13 @@ function getScoreBg(score: number | null): string {
   return "bg-brand-error";
 }
 
+function getScoreBadgeClass(score: number | null): string {
+  if (score == null) return "border-border text-steel bg-muted";
+  if (score >= 80) return "border-brand-green/30 text-brand-green-deep bg-brand-green-soft";
+  if (score >= 60) return "border-brand-warn/30 text-amber-700 bg-amber-50";
+  return "border-destructive/20 text-destructive bg-destructive/10";
+}
+
 export default function CoachingPage() {
   const { user } = useAuthStore();
   const [selectedSalespersonId, setSelectedSalespersonId] = useState<string>("");
@@ -116,6 +108,17 @@ export default function CoachingPage() {
         `/salespeople/${activeSalespersonId}/performance`,
       ),
     enabled: !!activeSalespersonId,
+  });
+
+  // Get the active salesperson's store_id for analytics
+  const activeSalesperson = salespeople?.find((sp) => sp.id === activeSalespersonId);
+  const { data: storeAnalytics } = useQuery({
+    queryKey: ["coaching-store-analytics", activeSalesperson?.store_id],
+    queryFn: () =>
+      api.get<AnalyticsOverviewResponse>(
+        `/analytics/overview?store_id=${activeSalesperson?.store_id}`,
+      ),
+    enabled: !!activeSalesperson?.store_id,
   });
 
   // Build radar chart data
@@ -147,10 +150,11 @@ export default function CoachingPage() {
   }));
 
   return (
-    <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4 sm:pb-6">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">Coaching Dashboard</h1>
+          <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Coaching Dashboard</h1>
           <p className="mt-1 text-sm text-steel">
             AI-powered performance insights and recommendations
           </p>
@@ -162,7 +166,7 @@ export default function CoachingPage() {
             value={selectedSalespersonId || salespeople[0]?.id || ""}
             onValueChange={(v) => v && setSelectedSalespersonId(v)}
           >
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-full sm:w-[220px]">
               <SelectValue placeholder="Select salesperson" />
             </SelectTrigger>
             <SelectContent>
@@ -217,63 +221,67 @@ export default function CoachingPage() {
 
           {/* Skill Scores + Radar Chart */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Award className="h-4 w-4" />
+                  <Award className="h-4 w-4 text-steel" />
                   Skill Scores
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {performance ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {Object.entries(SKILL_LABELS).map(([key, label]) => {
                       const score = performance[
                         key as keyof SalespersonPerformance
                       ] as number | null;
                       return (
-                        <div key={key} className="flex items-center justify-between">
-                          <span className="text-sm">{label}</span>
-                          <div className="flex items-center gap-3">
-                            <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${getScoreBg(score)}`}
-                                style={{ width: `${score ?? 0}%` }}
-                              />
-                            </div>
+                        <div key={key} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-charcoal">{label}</span>
                             <span
-                              className={`text-sm font-semibold w-8 text-right ${getScoreColor(score)}`}
+                              className={`text-sm font-semibold font-mono w-8 text-right ${getScoreColor(score)}`}
                             >
                               {score != null ? score.toFixed(0) : "—"}
                             </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${getScoreBg(score)}`}
+                              style={{ width: `${score ?? 0}%` }}
+                            />
                           </div>
                         </div>
                       );
                     })}
                     <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Overall</span>
-                      <span
-                        className={`text-sm font-bold ${getScoreColor(performance.avg_overall_score)}`}
-                      >
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-sm font-medium text-ink">Overall</span>
+                      <Badge variant="outline" className={`font-mono font-semibold ${getScoreBadgeClass(performance.avg_overall_score)}`}>
                         {performance.avg_overall_score != null
                           ? performance.avg_overall_score.toFixed(1)
                           : "—"}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground py-4">
-                    Select a salesperson to view their performance data.
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+                    <p className="text-sm text-steel">
+                      Select a salesperson to view their performance data.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Radar Chart */}
-            <Card>
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
               <CardHeader>
-                <CardTitle>Skill Radar</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-steel" />
+                  Skill Radar
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {radarData.some((d) => d.score > 0) ? (
@@ -302,8 +310,9 @@ export default function CoachingPage() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
-                    Skill radar will render when analysis data is available
+                  <div className="h-[280px] flex flex-col items-center justify-center text-center">
+                    <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+                    <p className="text-sm text-steel">Skill radar will render when analysis data is available</p>
                   </div>
                 )}
               </CardContent>
@@ -312,7 +321,7 @@ export default function CoachingPage() {
 
           {/* Improvement Areas */}
           {weakestSkills.length > 0 && (
-            <Card>
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-brand-warn" />
@@ -321,20 +330,22 @@ export default function CoachingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {weakestSkills.map((s) => (
+                  {weakestSkills.map((s, i) => (
                     <div
                       key={s.key}
-                      className="flex items-start gap-3 rounded-md border border-brand-warn/20 bg-amber-50/50 p-3"
+                      className="flex items-start gap-3 rounded-lg border border-border p-4"
                     >
-                      <Badge
-                        variant="outline"
-                        className={`shrink-0 mt-0.5 ${getScoreColor(s.score)}`}
-                      >
-                        {s.score.toFixed(0)}
-                      </Badge>
-                      <div>
-                        <p className="text-sm font-medium">{s.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-ink">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-ink">{s.label}</p>
+                          <Badge variant="outline" className={`shrink-0 font-mono ${getScoreBadgeClass(s.score)}`}>
+                            {s.score.toFixed(0)}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-steel mt-1 leading-relaxed">
                           {SKILL_TIPS[s.key]}
                         </p>
                       </div>
@@ -347,7 +358,7 @@ export default function CoachingPage() {
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
-            <Card>
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-brand-tag" />
@@ -359,14 +370,16 @@ export default function CoachingPage() {
                   {recommendations.map((rec, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-3 rounded-md border border-brand-tag/20 bg-blue-50/50 p-3"
+                      className="flex items-start gap-3 rounded-lg border border-brand-tag/15 bg-brand-tag/[0.03] p-4"
                     >
-                      <Lightbulb className="h-4 w-4 text-brand-tag shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          Improve {rec.skill} (currently {rec.score.toFixed(0)})
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-tag/10">
+                        <Lightbulb className="h-3.5 w-3.5 text-brand-tag" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ink">
+                          Improve {rec.skill} <span className="font-mono text-steel font-normal">(currently {rec.score.toFixed(0)})</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{rec.tip}</p>
+                        <p className="text-xs text-steel mt-1 leading-relaxed">{rec.tip}</p>
                       </div>
                     </div>
                   ))}
@@ -375,59 +388,46 @@ export default function CoachingPage() {
             </Card>
           )}
 
-          {/* Historical Trend */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Score Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={mockTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="week" className="text-xs" />
-                    <YAxis domain={[0, 100]} className="text-xs" />
-                    <RechartsTooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground text-center">
-                Weekly overall score trend (sample data)
-              </p>
-            </CardContent>
-          </Card>
+          {/* Historical Trend + Conversion Gauge */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ScoreTrend
+              data={storeAnalytics?.score_trend ?? []}
+              title="Score Trend (Store)"
+            />
+            <ConversionGauge
+              value={performance?.conversion_rate != null ? performance.conversion_rate / 100 : null}
+              title="Your Conversion Rate"
+              label={performance?.total_conversations ? `${performance.total_conversations} conversations` : undefined}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="30d" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground text-sm">
-              30-day detailed view with conversation-level breakdown
+          <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+            <CardContent className="py-12 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mx-auto mb-3" />
+              <p className="text-sm font-medium text-steel">30-day detailed view</p>
+              <p className="text-xs text-stone mt-1">Conversation-level breakdown coming soon.</p>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="60d" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground text-sm">
-              60-day trend analysis with week-over-week comparisons
+          <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+            <CardContent className="py-12 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mx-auto mb-3" />
+              <p className="text-sm font-medium text-steel">60-day trend analysis</p>
+              <p className="text-xs text-stone mt-1">Week-over-week comparisons coming soon.</p>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="90d" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground text-sm">
-              90-day quarterly review with comprehensive performance summary
+          <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+            <CardContent className="py-12 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mx-auto mb-3" />
+              <p className="text-sm font-medium text-steel">90-day quarterly review</p>
+              <p className="text-xs text-stone mt-1">Comprehensive performance summary coming soon.</p>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,1 +1,0 @@
-Unifies a polyglot retail analytics stack by coordinating Next.js, Python API, and shared TypeScript contracts through Turborepo and Docker.

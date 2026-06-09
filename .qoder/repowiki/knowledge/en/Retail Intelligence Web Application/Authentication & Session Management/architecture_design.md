@@ -1,4 +1,4 @@
-- State management uses a Zustand store (`apps/web/src/store/auth.ts`) as the single source of truth for auth state (user, tokens, isAuthenticated flag), with `login`, `logout`, and `hydrate` actions.
-- The login page (`apps/web/src/app/(auth)/login/page.tsx`) is a client-side Next.js route that calls the shared API client to POST credentials, then delegates to the store's `login` action on success.
-- Route protection is enforced by the `AuthGuard` component (`apps/web/src/components/auth-guard.tsx`), which hydrates the store on mount and redirects unauthenticated users away from non-public paths while redirecting authenticated users away from `/login`.
-- Token persistence relies on `localStorage` (access_token, refresh_token, serialized user), with hydration parsing stored values to restore session state across page reloads.
+- Centralized state management using a Zustand store (`apps/web/src/store/auth.ts`) that handles login, logout, and hydration from `localStorage`.
+- Route protection implemented via a client-side `AuthGuard` component (`apps/web/src/components/auth-guard.tsx`) that redirects unauthenticated users and manages loading states.
+- Authentication UI encapsulated in a Next.js route group (`apps/web/src/app/(auth)/`) with a dedicated login page that interacts with the API client.
+- Dependency flow: UI components and guards depend on the auth store, which in turn relies on the shared API client for token exchange and user data retrieval.

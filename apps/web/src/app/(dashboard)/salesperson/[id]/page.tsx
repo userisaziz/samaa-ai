@@ -9,6 +9,7 @@ import type {
   SalespersonPerformance,
   Recording,
   Store,
+  AnalyticsOverviewResponse,
 } from "@samaa/shared";
 import { KPICard } from "@/components/kpi-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -34,6 +35,7 @@ import {
   Target,
   BarChart3,
   Eye,
+  Inbox,
 } from "lucide-react";
 import {
   RadarChart,
@@ -43,6 +45,8 @@ import {
   Radar,
   ResponsiveContainer,
 } from "recharts";
+import { ConversionGauge } from "@/components/charts/conversion-gauge";
+import { ScoreTrend } from "@/components/charts/score-trend";
 
 const SKILL_LABELS: Record<string, string> = {
   avg_greeting_score: "Greeting",
@@ -69,6 +73,27 @@ function formatDate(dateStr: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getScoreColor(score: number | null): string {
+  if (score == null) return "text-steel";
+  if (score >= 80) return "text-brand-green-deep";
+  if (score >= 60) return "text-amber-700";
+  return "text-destructive";
+}
+
+function getScoreBg(score: number | null): string {
+  if (score == null) return "bg-muted";
+  if (score >= 80) return "bg-brand-green";
+  if (score >= 60) return "bg-brand-warn";
+  return "bg-brand-error";
+}
+
+function getScoreBadgeClass(score: number | null | undefined): string {
+  if (score == null) return "border-border text-steel bg-muted";
+  if (score >= 80) return "border-brand-green/30 text-brand-green-deep bg-brand-green-soft";
+  if (score >= 60) return "border-brand-warn/30 text-amber-700 bg-amber-50";
+  return "border-brand-error/20 text-destructive bg-destructive/10";
 }
 
 export default function SalespersonDetailPage() {
@@ -109,6 +134,16 @@ export default function SalespersonDetailPage() {
     enabled: !!salesperson?.store_id,
   });
 
+  // Fetch store analytics for trend data
+  const { data: storeAnalytics } = useQuery({
+    queryKey: ["salesperson-store-analytics", salesperson?.store_id],
+    queryFn: () =>
+      api.get<AnalyticsOverviewResponse>(
+        `/analytics/overview?store_id=${salesperson?.store_id}`,
+      ),
+    enabled: !!salesperson?.store_id,
+  });
+
   const recordings = recordingsData?.items ?? [];
 
   // Build radar chart data from performance scores
@@ -123,7 +158,7 @@ export default function SalespersonDetailPage() {
   const conversionRate = performance?.conversion_rate;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
@@ -133,15 +168,15 @@ export default function SalespersonDetailPage() {
       />
 
       {/* Back button + Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link href={store ? `/store/${store.id}` : "/salespeople"}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back
           </Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-[28px] font-semibold tracking-tight text-ink leading-tight">
+        <div className="flex-1 border-b border-border pb-4 sm:pb-6">
+          <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">
             {salesperson?.name || "Salesperson"}
           </h1>
           <p className="mt-1 text-sm text-steel">
@@ -153,13 +188,7 @@ export default function SalespersonDetailPage() {
         {overallScore != null && (
           <Badge
             variant="outline"
-            className={`text-lg px-4 py-2 font-bold ${
-              overallScore >= 80
-                ? "border-brand-green/30 text-brand-green-deep bg-brand-green-soft"
-                : overallScore >= 60
-                ? "border-brand-warn/30 text-amber-700 bg-amber-50"
-                : "border-brand-error/20 text-destructive bg-destructive/10"
-            }`}
+            className={`text-lg px-4 py-2 font-bold font-mono ${getScoreBadgeClass(overallScore)}`}
           >
             {overallScore.toFixed(0)} / 100
           </Badge>
@@ -197,66 +226,61 @@ export default function SalespersonDetailPage() {
       {/* Skill Scores + Radar Chart */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Skill Breakdown */}
-        <Card>
+        <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Award className="h-4 w-4" />
+              <Award className="h-4 w-4 text-steel" />
               Skill Scores
             </CardTitle>
           </CardHeader>
           <CardContent>
             {performance ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {Object.entries(SKILL_LABELS).map(([key, label]) => {
                   const score = performance[
                     key as keyof SalespersonPerformance
                   ] as number | null;
                   return (
-                    <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm">{label}</span>
-                      <div className="flex items-center gap-3">
-                        <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              score != null && score >= 80
-                                ? "bg-brand-green"
-                                : score != null && score >= 60
-                                ? "bg-brand-warn"
-                                : score != null
-                                ? "bg-brand-error"
-                                : "bg-muted"
-                            }`}
-                            style={{ width: `${score ?? 0}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-semibold w-8 text-right">
+                    <div key={key} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-charcoal">{label}</span>
+                        <span className={`text-sm font-semibold font-mono w-8 text-right ${getScoreColor(score)}`}>
                           {score != null ? score.toFixed(0) : "—"}
                         </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${getScoreBg(score)}`}
+                          style={{ width: `${score ?? 0}%` }}
+                        />
                       </div>
                     </div>
                   );
                 })}
                 <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Overall</span>
-                  <span className="text-sm font-bold">
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-sm font-medium text-ink">Overall</span>
+                  <Badge variant="outline" className={`font-mono font-semibold ${getScoreBadgeClass(overallScore)}`}>
                     {overallScore != null ? overallScore.toFixed(1) : "—"}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-4">
-                Performance data will appear once conversations are analyzed.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+                <p className="text-sm text-steel">
+                  Performance data will appear once conversations are analyzed.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Radar Chart */}
-        <Card>
+        <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4 text-steel" />
               Skill Radar
             </CardTitle>
           </CardHeader>
@@ -287,20 +311,34 @@ export default function SalespersonDetailPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
-                Skill radar will render when analysis data is available
+              <div className="h-[280px] flex flex-col items-center justify-center text-center">
+                <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+                <p className="text-sm text-steel">Skill radar will render when analysis data is available</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
+      {/* Conversion Gauge + Score Trend */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ConversionGauge
+          value={conversionRate != null ? conversionRate / 100 : null}
+          title="Conversion Rate"
+          label={performance?.total_conversations ? `${performance.total_conversations} conversations` : undefined}
+        />
+        <ScoreTrend
+          data={storeAnalytics?.score_trend ?? []}
+          title="Score Trend (Store)"
+        />
+      </div>
+
       {/* Recent Recordings */}
-      <Card>
+      <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Mic className="h-4 w-4" />
+              <Mic className="h-4 w-4 text-steel" />
               Recent Recordings
             </CardTitle>
             <Link href={`/recordings?salesperson_id=${salespersonId}`}>
@@ -316,23 +354,21 @@ export default function SalespersonDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Date</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Duration</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Format</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Status</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recordings.map((rec) => (
                   <TableRow key={rec.id}>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-steel font-mono text-[13px]">
                       {formatDate(rec.uploaded_at)}
                     </TableCell>
-                    <TableCell>{formatDuration(rec.duration_seconds)}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {rec.format}
-                    </TableCell>
+                    <TableCell className="font-mono text-sm">{formatDuration(rec.duration_seconds)}</TableCell>
+                    <TableCell className="text-steel">{rec.format}</TableCell>
                     <TableCell>
                       <StatusBadge status={rec.status} />
                     </TableCell>
@@ -351,9 +387,10 @@ export default function SalespersonDetailPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              No recordings found yet.
-            </p>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Inbox className="h-10 w-10 text-stone/40 mb-3" />
+              <p className="text-sm text-steel">No recordings found yet.</p>
+            </div>
           )}
         </CardContent>
       </Card>

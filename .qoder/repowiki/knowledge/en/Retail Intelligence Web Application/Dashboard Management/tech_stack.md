@@ -1,1 +1,1 @@
-Next.js App Router with React Query (@tanstack/react-query) for data fetching, Recharts for radar chart visualization in salesperson detail view, shadcn/ui component library for UI primitives.
+Next.js App Router with Client Components, TanStack Query for server-state synchronization, Recharts for data visualization, and Lucide React for iconography.
