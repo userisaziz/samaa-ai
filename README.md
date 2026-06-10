@@ -11,10 +11,11 @@ SAMAA is a full-stack platform for uploading, transcribing, diarizing, analyzing
 ![Login View](screenshots/auth-view/auth.png)
 
 ### Interaction Details
-
-![Interaction Details 1](screenshots/dashboard-view/interaction-details-1.png)
-![Interaction Details 2](screenshots/dashboard-view/interaction-details-2.png)
 ![Recording Details](screenshots/dashboard-view/interaction-recording-details.png)
+![Interaction Details 2](screenshots/dashboard-view/interaction-details-2.png)
+![Interaction Details 1](screenshots/dashboard-view/interaction-details-1.png)
+
+
 ![Coaching View](screenshots/dashboard-view/coaching.png)
 
 ### Features
