@@ -182,28 +182,52 @@ export default function RecordingDetailPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <KPICard
-            title="Conversations"
-            value={summary.total_conversations}
-            icon={MessageSquare}
-          />
-          <KPICard
-            title="Top Intent"
-            value={summary.top_intent || "—"}
-            icon={Target}
-          />
-          <KPICard
-            title="Top Objection"
-            value={summary.top_objection || "—"}
-            icon={AlertTriangle}
-          />
-          <KPICard
-            title="Missed Opportunities"
-            value={summary.missed_opportunities}
-            icon={Mic}
-          />
-        </div>
+        <>
+          {/* Numeric KPIs */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            <KPICard
+              title="Conversations"
+              value={summary.total_conversations}
+              icon={MessageSquare}
+            />
+            <KPICard
+              title="Missed Opportunities"
+              value={summary.missed_opportunities}
+              icon={Mic}
+            />
+          </div>
+
+          {/* Text Info Cards */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+              <CardHeader className="flex flex-row items-center justify-between pb-1">
+                <CardTitle className="text-sm font-medium text-steel">Top Intent</CardTitle>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-green-soft">
+                  <Target className="h-4.5 w-4.5 text-brand-green-deep" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-base font-medium text-ink">
+                  {summary.top_intent || "—"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+              <CardHeader className="flex flex-row items-center justify-between pb-1">
+                <CardTitle className="text-sm font-medium text-steel">Top Objection</CardTitle>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-green-soft">
+                  <AlertTriangle className="h-4.5 w-4.5 text-brand-green-deep" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-base font-medium text-ink">
+                  {summary.top_objection || "—"}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
 
       {/* Audio Player */}
