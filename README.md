@@ -438,3 +438,51 @@ CORS_ORIGINS=http://localhost:3000
 ```
 
 </details>
+
+---
+
+## Documentation Index
+
+For detailed technical documentation, explore the repository wiki:
+
+### Backend Architecture
+- [**Backend Architecture Overview**](.qoder/repowiki/en/content/System%20Architecture/Backend%20Architecture.md) - FastAPI service structure, routing, dependency injection, and security
+- [Backend Configuration Management](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/) - Environment settings and Pydantic configuration
+
+### AI Processing Pipeline
+- [**Pipeline Architecture & Orchestration**](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md) - Complete Celery-based pipeline workflow
+- Pipeline Stages:
+  - [Preprocessing Task](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#preprocessing-task)
+  - [Transcription Task (STT)](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#transcription-task)
+  - [Segmentation Task](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#segmentation-task)
+  - [Diarization Task](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#diarization-task)
+  - [Analysis Task (LLM)](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#analysis-task)
+  - [Scoring Task](.qoder/repowiki/en/content/AI%20Processing%20Pipeline/Pipeline%20Architecture%20&%20Orchestration.md#scoring-task)
+
+### Business Logic Layer
+- [Authentication & Session Management](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/Authentication%20&%20Session%20Management/overview.md) - JWT auth, token refresh, session handling
+- [Dashboard Management](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/Dashboard%20Management/overview.md) - Dashboard architecture and layout structure
+- [Conversation Analysis & Coaching](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/Conversation%20Analysis%20&%20Coaching%20Dashboard/overview.md) - AI insights and coaching dashboard
+
+### Data Models
+- [Recording Model](apps/api/src/models/recording.py) - Audio recording metadata and status
+- [Conversation Model](apps/api/src/models/conversation.py) - Sales conversation data
+- [Transcript Model](apps/api/src/models/transcript.py) - ASR-generated text segments
+- [Metrics Model](apps/api/src/models/metrics.py) - Scoring results and analytics
+
+### Frontend Architecture
+- [Sales Intelligence Web Application](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/overview.md) - Next.js app structure and routing
+- [Dashboard Layout & UI Components](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/Dashboard%20Layout%20&%20UI%20Components/overview.md) - Component library and layout system
+- [Shared UI Component Library](.qoder/repowiki/knowledge/en/Sales%20Intelligence%20Web%20Application/Shared%20UI%20Component%20Library%20&%20Web%20Utilities/overview.md) - Reusable UI primitives
+
+### API Reference
+- [API Documentation (Swagger)](http://localhost:8000/docs) - Interactive API docs (when running)
+- [API Router Structure](apps/api/src/api/v1/router.py) - Route organization
+- Domain Routers: [Auth](apps/api/src/api/v1/auth.py) · [Brands](apps/api/src/api/v1/brands.py) · [Recordings](apps/api/src/api/v1/recordings.py) · [Conversations](apps/api/src/api/v1/conversations.py)
+
+### Infrastructure
+- [Docker Compose Configuration](docker-compose.yml) - PostgreSQL + Redis deployment
+- [Database Migrations](apps/api/alembic/) - Alembic migration scripts
+- [Celery Worker Configuration](apps/api/src/workers/celery_app.py) - Task queue setup
+- [Storage Abstraction](apps/api/src/storage/) - Local and S3 storage backends
+
