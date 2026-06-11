@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { TranscriptSegment, Conversation } from "@samaa/shared";
 import { cn } from "@/lib/utils";
+import { ArrowLeftRight } from "lucide-react";
 
 /** Role-based color palette — salesperson gets brand green, customer gets blue. */
 const ROLE_COLORS: Record<string, string> = {
@@ -59,6 +60,8 @@ interface TranscriptViewerProps {
   salespersonName?: string;
   onSegmentClick?: (segment: TranscriptSegment) => void;
   onConversationHighlight?: (conversationId: string) => void;
+  /** Called when user manually corrects a speaker's role. */
+  onRoleCorrection?: (speakerLabel: string, correctedRole: string) => void;
 }
 
 export function TranscriptViewer({
@@ -68,6 +71,7 @@ export function TranscriptViewer({
   currentTime,
   salespersonName,
   onSegmentClick,
+  onRoleCorrection,
 }: TranscriptViewerProps) {
   // Group segments by conversation time ranges
   const segmentsWithConversation = useMemo(() => {
@@ -130,7 +134,7 @@ export function TranscriptViewer({
             </span>
             <span
               className={cn(
-                "shrink-0 w-24 text-xs font-semibold pt-0.5 flex items-center gap-1",
+                "shrink-0 w-24 text-xs font-semibold pt-0.5 flex items-center gap-1 group/label",
                 labelColor,
               )}
               title={
@@ -147,6 +151,20 @@ export function TranscriptViewer({
                 >
                   ?
                 </span>
+              )}
+              {onRoleCorrection && seg.role_label && (
+                <button
+                  type="button"
+                  className="shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
+                  title={`Swap to ${seg.role_label.toLowerCase() === "salesperson" ? "Customer" : "Salesperson"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const swapped = seg.role_label!.toLowerCase() === "salesperson" ? "Customer" : "Salesperson";
+                    onRoleCorrection(seg.speaker_label, swapped);
+                  }}
+                >
+                  <ArrowLeftRight className="h-3 w-3 text-steel" />
+                </button>
               )}
             </span>
             <span className="flex-1">{seg.text}</span>

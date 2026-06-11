@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime
 
 from fastapi import UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -267,6 +267,71 @@ async def get_enriched_transcript(db: AsyncSession, recording_id: str) -> list[d
         })
 
     return enriched
+
+
+async def correct_speaker_role(
+    db: AsyncSession,
+    recording_id: str,
+    speaker_label: str,
+    corrected_role: str,
+) -> bool:
+    """Manually correct a speaker's role classification.
+
+    Updates the speaker_roles record with the corrected role,
+    setting classification_method to 'Manual' and confidence to 1.0.
+    Also updates all conversation_turns for this recording that
+    match the speaker_label.
+
+    Returns True if a record was updated, False if no matching record found.
+    """
+    if corrected_role not in ("Salesperson", "Customer"):
+        raise ValueError(f"Invalid role: {corrected_role}. Must be 'Salesperson' or 'Customer'.")
+
+    rid = uuid.UUID(recording_id)
+
+    # Check recording exists
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        return False
+
+    # Update speaker_roles table
+    result = await db.execute(
+        update(SpeakerRole)
+        .where(
+            SpeakerRole.recording_id == rid,
+            SpeakerRole.speaker_label == speaker_label,
+        )
+        .values(
+            role_label=corrected_role,
+            classification_method="Manual",
+            confidence=1.0,
+        )
+    )
+
+    if result.rowcount == 0:
+        # No existing record — create one
+        new_role = SpeakerRole(
+            recording_id=rid,
+            speaker_label=speaker_label,
+            role_label=corrected_role,
+            classification_method="Manual",
+            confidence=1.0,
+        )
+        db.add(new_role)
+
+    # Also update conversation_turns for this recording with matching speaker
+    from src.models.transcript import ConversationTurn
+    await db.execute(
+        update(ConversationTurn)
+        .where(
+            ConversationTurn.recording_id == rid,
+            ConversationTurn.speaker_label == speaker_label,
+        )
+        .values(role_label=corrected_role)
+    )
+
+    await db.commit()
+    return True
 
 
 async def get_conversations(db: AsyncSession, recording_id: str) -> list[Conversation]:

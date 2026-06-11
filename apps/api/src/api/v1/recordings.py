@@ -12,6 +12,7 @@ from src.schemas.recording import (
     RecordingResponse,
     RecordingStatusResponse,
     RecordingSummaryResponse,
+    SpeakerRoleCorrectionRequest,
     TranscriptSegmentResponse,
 )
 from src.schemas.conversation import ConversationResponse
@@ -21,6 +22,7 @@ from src.services.recording import (
     get_recording_summary,
     get_recording_transcript,
     get_enriched_transcript,
+    correct_speaker_role,
     get_recording_conversations,
     list_recordings,
     reprocess_recording,
@@ -150,6 +152,34 @@ async def get_recording_transcript_endpoint(
     if segments is None:
         raise HTTPException(status_code=404, detail="Recording not found")
     return segments
+
+
+@router.patch("/{recording_id}/speaker-role")
+async def correct_speaker_role_endpoint(
+    recording_id: str,
+    body: SpeakerRoleCorrectionRequest,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    """Manually correct a speaker's role classification.
+
+    Updates the speaker_roles record and all related conversation_turns
+    with the corrected role. Sets classification_method to 'Manual'.
+    """
+    try:
+        updated = await correct_speaker_role(
+            db,
+            recording_id,
+            body.speaker_label,
+            body.corrected_role,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="Recording not found")
+
+    return {"status": "ok", "speaker_label": body.speaker_label, "role": body.corrected_role}
 
 
 @router.get("/{recording_id}/conversations", response_model=list[ConversationResponse])

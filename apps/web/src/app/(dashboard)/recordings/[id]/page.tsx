@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Recording,
   TranscriptSegment,
@@ -41,6 +41,7 @@ function formatDuration(seconds: number | null): string {
 export default function RecordingDetailPage() {
   const params = useParams();
   const recordingId = params.id as string;
+  const queryClient = useQueryClient();
 
   // Pre-select conversation from query param (e.g. /recordings/[id]?conv=[convId])
   const searchParams = useSearchParams();
@@ -120,6 +121,24 @@ export default function RecordingDetailPage() {
       setActiveConversationId(conv.id);
     }
   }, [conversations]);
+
+  const handleRoleCorrection = useCallback(
+    async (speakerLabel: string, correctedRole: string) => {
+      try {
+        await api.patch(`/recordings/${recordingId}/speaker-role`, {
+          speaker_label: speakerLabel,
+          corrected_role: correctedRole,
+        });
+        // Invalidate transcript cache so UI refreshes with corrected roles
+        queryClient.invalidateQueries({
+          queryKey: ["recording-transcript", recordingId],
+        });
+      } catch (err) {
+        console.error("Failed to correct speaker role:", err);
+      }
+    },
+    [recordingId, queryClient],
+  );
 
   // Fetch salesperson info for breadcrumb
   const { data: salesperson } = useQuery({
@@ -275,6 +294,7 @@ export default function RecordingDetailPage() {
               currentTime={currentTime}
               salespersonName={salesperson?.name}
               onSegmentClick={handleSegmentSeek}
+              onRoleCorrection={handleRoleCorrection}
             />
           </CardContent>
         </Card>

@@ -75,3 +75,9 @@ class PaginatedRecordingsResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class SpeakerRoleCorrectionRequest(BaseModel):
+    """Request to manually correct a speaker's role classification."""
+    speaker_label: str
+    corrected_role: str  # "Salesperson" or "Customer"
