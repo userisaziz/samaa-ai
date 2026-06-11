@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
-from src.models.transcript import TranscriptSegment
+from src.models.transcript import TranscriptSegment, SpeakerRole
 from src.schemas.recording import RecordingResponse, RecordingStatusResponse, RecordingSummaryResponse
 from src.storage.local import get_storage
 
@@ -221,6 +221,52 @@ async def get_recording_transcript(db: AsyncSession, recording_id: str) -> list[
     if not recording:
         return None
     return await get_transcript(db, recording_id)
+
+
+async def get_enriched_transcript(db: AsyncSession, recording_id: str) -> list[dict] | None:
+    """Get transcript segments enriched with speaker role data.
+
+    LEFT JOINs with speaker_roles to attach role_label and role_confidence
+    to each transcript segment based on matching speaker_label.
+    Returns None if recording doesn't exist.
+    """
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        return None
+
+    # Fetch transcript segments
+    segments = await get_transcript(db, recording_id)
+
+    # Fetch speaker roles for this recording
+    role_result = await db.execute(
+        select(SpeakerRole).where(
+            SpeakerRole.recording_id == uuid.UUID(recording_id)
+        )
+    )
+    speaker_roles = {
+        role.speaker_label: {
+            "role_label": role.role_label,
+            "confidence": role.confidence,
+        }
+        for role in role_result.scalars().all()
+    }
+
+    # Build enriched response dicts
+    enriched = []
+    for seg in segments:
+        role_info = speaker_roles.get(seg.speaker_label, {})
+        enriched.append({
+            "id": seg.id,
+            "recording_id": seg.recording_id,
+            "speaker_label": seg.speaker_label,
+            "role_label": role_info.get("role_label"),
+            "role_confidence": role_info.get("confidence"),
+            "start_time": seg.start_time,
+            "end_time": seg.end_time,
+            "text": seg.text,
+        })
+
+    return enriched
 
 
 async def get_conversations(db: AsyncSession, recording_id: str) -> list[Conversation]:

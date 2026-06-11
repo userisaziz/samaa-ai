@@ -273,6 +273,7 @@ export default function RecordingDetailPage() {
               conversations={conversations}
               activeConversationId={activeConversationId}
               currentTime={currentTime}
+              salespersonName={salesperson?.name}
               onSegmentClick={handleSegmentSeek}
             />
           </CardContent>

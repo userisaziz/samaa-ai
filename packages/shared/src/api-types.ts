@@ -137,6 +137,8 @@ export interface TranscriptSegment {
   id: string;
   recording_id: string;
   speaker_label: string;
+  role_label?: string | null;
+  role_confidence?: number | null;
   start_time: number;
   end_time: number;
   text: string;

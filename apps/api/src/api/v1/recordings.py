@@ -20,6 +20,7 @@ from src.services.recording import (
     get_recording_status,
     get_recording_summary,
     get_recording_transcript,
+    get_enriched_transcript,
     get_recording_conversations,
     list_recordings,
     reprocess_recording,
@@ -145,7 +146,7 @@ async def get_recording_transcript_endpoint(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_salesperson_up),
 ):
-    segments = await get_recording_transcript(db, recording_id)
+    segments = await get_enriched_transcript(db, recording_id)
     if segments is None:
         raise HTTPException(status_code=404, detail="Recording not found")
     return segments

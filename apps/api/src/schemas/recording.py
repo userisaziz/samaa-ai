@@ -34,6 +34,8 @@ class TranscriptSegmentResponse(BaseModel):
     id: uuid.UUID
     recording_id: uuid.UUID
     speaker_label: str
+    role_label: str | None = None
+    role_confidence: float | None = None
     start_time: float
     end_time: float
     text: str
