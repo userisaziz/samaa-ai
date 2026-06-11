@@ -81,3 +81,21 @@ class SpeakerRoleCorrectionRequest(BaseModel):
     """Request to manually correct a speaker's role classification."""
     speaker_label: str
     corrected_role: str  # "Salesperson" or "Customer"
+
+
+class SpeakerRoleSummary(BaseModel):
+    """Summary of a single speaker's role classification for a recording."""
+    speaker_label: str
+    role_label: str
+    classification_method: str | None = None
+    confidence: float | None = None
+    is_manually_corrected: bool = False
+
+
+class SpeakerRolesResponse(BaseModel):
+    """Full speaker role classification summary for a recording."""
+    recording_id: str
+    speakers: list[SpeakerRoleSummary]
+    total_speakers: int = 0
+    manually_corrected_count: int = 0
+    primary_method: str | None = None  # Most common classification method

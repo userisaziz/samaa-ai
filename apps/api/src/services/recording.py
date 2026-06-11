@@ -11,7 +11,13 @@ from sqlalchemy.orm import selectinload
 from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
 from src.models.transcript import TranscriptSegment, SpeakerRole
-from src.schemas.recording import RecordingResponse, RecordingStatusResponse, RecordingSummaryResponse
+from src.schemas.recording import (
+    RecordingResponse,
+    RecordingStatusResponse,
+    RecordingSummaryResponse,
+    SpeakerRoleSummary,
+    SpeakerRolesResponse,
+)
 from src.storage.local import get_storage
 
 
@@ -332,6 +338,66 @@ async def correct_speaker_role(
 
     await db.commit()
     return True
+
+
+async def get_speaker_roles_summary(
+    db: AsyncSession,
+    recording_id: str,
+) -> SpeakerRolesResponse | None:
+    """Get speaker role classification summary for a recording.
+
+    Returns classification method breakdown, correction stats,
+    and per-speaker role details.
+    """
+    recording = await get_recording(db, recording_id)
+    if not recording:
+        return None
+
+    result = await db.execute(
+        select(SpeakerRole)
+        .where(SpeakerRole.recording_id == uuid.UUID(recording_id))
+        .order_by(SpeakerRole.speaker_label)
+    )
+    roles = result.scalars().all()
+
+    if not roles:
+        return SpeakerRolesResponse(
+            recording_id=recording_id,
+            speakers=[],
+            total_speakers=0,
+            manually_corrected_count=0,
+            primary_method=None,
+        )
+
+    speakers = []
+    methods: list[str] = []
+    corrected_count = 0
+
+    for role in roles:
+        is_manual = role.classification_method == "Manual"
+        if is_manual:
+            corrected_count += 1
+        if role.classification_method:
+            methods.append(role.classification_method)
+
+        speakers.append(SpeakerRoleSummary(
+            speaker_label=role.speaker_label,
+            role_label=role.role_label,
+            classification_method=role.classification_method,
+            confidence=role.confidence,
+            is_manually_corrected=is_manual,
+        ))
+
+    # Most common classification method
+    primary_method = Counter(methods).most_common(1)[0][0] if methods else None
+
+    return SpeakerRolesResponse(
+        recording_id=recording_id,
+        speakers=speakers,
+        total_speakers=len(speakers),
+        manually_corrected_count=corrected_count,
+        primary_method=primary_method,
+    )
 
 
 async def get_conversations(db: AsyncSession, recording_id: str) -> list[Conversation]:

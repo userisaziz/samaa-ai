@@ -13,6 +13,7 @@ from src.schemas.recording import (
     RecordingStatusResponse,
     RecordingSummaryResponse,
     SpeakerRoleCorrectionRequest,
+    SpeakerRolesResponse,
     TranscriptSegmentResponse,
 )
 from src.schemas.conversation import ConversationResponse
@@ -23,6 +24,7 @@ from src.services.recording import (
     get_recording_transcript,
     get_enriched_transcript,
     correct_speaker_role,
+    get_speaker_roles_summary,
     get_recording_conversations,
     list_recordings,
     reprocess_recording,
@@ -180,6 +182,23 @@ async def correct_speaker_role_endpoint(
         raise HTTPException(status_code=404, detail="Recording not found")
 
     return {"status": "ok", "speaker_label": body.speaker_label, "role": body.corrected_role}
+
+
+@router.get("/{recording_id}/speaker-roles", response_model=SpeakerRolesResponse)
+async def get_speaker_roles_endpoint(
+    recording_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_salesperson_up),
+):
+    """Get speaker role classification summary for a recording.
+
+    Returns per-speaker role details, classification methods,
+    and manual correction count.
+    """
+    result = await get_speaker_roles_summary(db, recording_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    return result
 
 
 @router.get("/{recording_id}/conversations", response_model=list[ConversationResponse])
