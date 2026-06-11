@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.sql import text as sql_text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -92,4 +92,61 @@ class SpeakerRole(Base):
     # Relationships
     recording: Mapped["Recording"] = relationship(
         "Recording", back_populates="speaker_roles"
+    )
+
+
+class SpeakerVoiceprint(Base):
+    """Voiceprint enrollment profile for known speaker identification.
+
+    Stores voiceprint data linked to a salesperson. Used for pre-diarization
+    speaker matching — if audio matches an enrolled voiceprint, the speaker
+    is immediately identified as that salesperson.
+
+    Supports multiple voiceprint engines (Picovoice Eagle, etc.).
+    """
+    __tablename__ = "speaker_voiceprints"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    salesperson_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("salespeople.id"), nullable=False, index=True
+    )
+    recording_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("recordings.id"), nullable=True,
+        comment="Source recording used for enrollment"
+    )
+    engine: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="picovoice_eagle",
+        comment="Voiceprint engine: picovoice_eagle, resemblyzer, etc."
+    )
+    voiceprint_bytes: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True,
+        comment="Serialized voiceprint profile data"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending",
+        comment="Enrollment status: pending, enrolled, failed"
+    )
+    sample_duration_seconds: Mapped[float | None] = mapped_column(
+        Float, nullable=True,
+        comment="Total duration of enrollment audio samples"
+    )
+    sample_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0,
+        comment="Number of audio samples used for enrollment"
+    )
+    notes: Mapped[str | None] = mapped_column(
+        String(500), nullable=True,
+        comment="Optional notes about enrollment"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, server_default=sql_text("NOW()")
+    )
+    enrolled_at: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+        comment="Timestamp when enrollment was completed"
+    )
+
+    # Relationships
+    salesperson: Mapped["Salesperson"] = relationship(
+        "Salesperson", backref="voiceprints"
     )
