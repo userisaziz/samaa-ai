@@ -46,3 +46,6 @@ class User(Base):
     # Relationships
     brand: Mapped["Brand | None"] = relationship("Brand", back_populates="users")
     store: Mapped["Store | None"] = relationship("Store", back_populates="users")
+    role_corrections: Mapped[list["SpeakerRoleCorrection"]] = relationship(
+        "SpeakerRoleCorrection", back_populates="user", cascade="all, delete-orphan"
+    )

@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from src.models.conversation import Conversation, ConversationAnalysis
 from src.models.recording import Recording, RecordingStatus
-from src.models.transcript import TranscriptSegment, SpeakerRole
+from src.models.transcript import TranscriptSegment, SpeakerRole, SpeakerRoleCorrection
 from src.schemas.recording import (
     RecordingResponse,
     RecordingStatusResponse,
@@ -300,6 +300,23 @@ async def correct_speaker_role(
     if not recording:
         return False
 
+    # Audit trail — log the correction
+    from src.models.transcript import ConversationTurn
+
+    # Look up original role before updating
+    original_role = None
+    previous_confidence = None
+    existing = await db.execute(
+        select(SpeakerRole).where(
+            SpeakerRole.recording_id == rid,
+            SpeakerRole.speaker_label == speaker_label,
+        )
+    )
+    existing_role = existing.scalar_one_or_none()
+    if existing_role:
+        original_role = existing_role.role_label
+        previous_confidence = existing_role.confidence
+
     # Update speaker_roles table
     result = await db.execute(
         update(SpeakerRole)
@@ -325,8 +342,18 @@ async def correct_speaker_role(
         )
         db.add(new_role)
 
+    # Create audit record
+    audit = SpeakerRoleCorrection(
+        recording_id=rid,
+        speaker_label=speaker_label,
+        original_role=original_role,
+        corrected_role=corrected_role,
+        previous_confidence=previous_confidence,
+        new_confidence=1.0,
+    )
+    db.add(audit)
+
     # Also update conversation_turns for this recording with matching speaker
-    from src.models.transcript import ConversationTurn
     await db.execute(
         update(ConversationTurn)
         .where(

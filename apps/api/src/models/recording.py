@@ -61,6 +61,9 @@ class Recording(Base):
     conversation_turns: Mapped[list["ConversationTurn"]] = relationship(
         "ConversationTurn", back_populates="recording", cascade="all, delete-orphan"
     )
+    role_corrections: Mapped[list["SpeakerRoleCorrection"]] = relationship(
+        "SpeakerRoleCorrection", back_populates="recording", cascade="all, delete-orphan"
+    )
     speaker_roles: Mapped[list["SpeakerRole"]] = relationship(
         "SpeakerRole", back_populates="recording", cascade="all, delete-orphan"
     )

@@ -150,3 +150,36 @@ class SpeakerVoiceprint(Base):
     salesperson: Mapped["Salesperson"] = relationship(
         "Salesperson", backref="voiceprints"
     )
+
+
+class SpeakerRoleCorrection(Base):
+    """Audit log of manually corrected speaker roles.
+
+    Captures every time a user overrides an automatically classified
+    speaker role via the swap button. Serves as both an audit trail
+    and a training signal for model improvement.
+    """
+    __tablename__ = "speaker_role_corrections"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    recording_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recordings.id"), nullable=False, index=True
+    )
+    speaker_label: Mapped[str] = mapped_column(String(20), nullable=False)
+    original_role: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    corrected_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    previous_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    new_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, server_default=sql_text("NOW()")
+    )
+
+    # Relationships
+    recording: Mapped["Recording"] = relationship(
+        "Recording", back_populates="role_corrections"
+    )
+    user: Mapped["User | None"] = relationship("User", back_populates="role_corrections")
