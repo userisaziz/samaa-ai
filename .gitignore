@@ -51,3 +51,7 @@ apps/api/alembic/versions/*.pyc
 
 # Ngrok (contains auth tokens)
 ngrok.yml
+
+# Tooling artifacts
+reviews/
+docs/superpowers/
