@@ -62,6 +62,14 @@ jobs:
             # Install backend dependencies
             echo "🔧 Installing backend dependencies..."
             cd apps/api
+            
+            # Create virtual environment if it doesn't exist
+            if [ ! -d ".venv" ]; then
+              echo "  Creating virtual environment..."
+              uv venv
+              echo "  ✅ Virtual environment created"
+            fi
+            
             source .venv/bin/activate
             uv pip install -e '.[prod]' --quiet
             echo "✅ Backend dependencies installed"
