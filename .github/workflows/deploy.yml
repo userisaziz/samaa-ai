@@ -65,13 +65,28 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Retry ssh-keyscan up to 5 times (transient network issues are common in CI)
+          echo "  Scanning host key on port ${{ secrets.SSH_PORT }}..."
+          for i in 1 2 3 4 5; do
+            if ssh-keyscan -T 10 -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>&1; then
+              echo "  Host key acquired on attempt $i"
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "::error::ssh-keyscan failed after 5 attempts. Is the VM reachable on port ${{ secrets.SSH_PORT }}?"
+              echo "  Verify: Oracle VM is running, SSH port is open, and ingress rule allows GitHub IPs"
+              exit 1
+            fi
+            echo "  Attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
 
       # Common SSH options: keep-alive prevents Broken Pipe during long commands
       - name: Set SSH options
         run: |
           echo "SSH_OPTS=-p ${{ secrets.SSH_PORT }} \
-            -o StrictHostKeyChecking=yes \
+            -o StrictHostKeyChecking=accept-new \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=5 \
             -o ConnectTimeout=15 \

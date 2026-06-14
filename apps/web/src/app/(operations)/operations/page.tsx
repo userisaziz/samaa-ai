@@ -30,6 +30,7 @@ interface UploadItem {
   salespersonName: string;
   recordedAt: string;
   status: "pending" | "uploading" | "success" | "error";
+  progress: number; // 0-100
   error?: string;
   recordingId?: string;
 }
@@ -191,6 +192,7 @@ export default function OperationsPage() {
       salespersonName: selectedSalesperson.name,
       recordedAt,
       status: "uploading",
+      progress: 0,
     };
 
     setUploadQueue((prev) => [uploadItem, ...prev]);
@@ -201,15 +203,23 @@ export default function OperationsPage() {
       formData.append("salesperson_id", selectedSalespersonId);
       formData.append("recorded_at", recordedAt);
 
-      const response = await api.post<Recording>(
+      const response = await api.upload<Recording>(
         "/recordings/upload",
-        formData
+        formData,
+        (progress) => {
+          // Update progress in real-time
+          setUploadQueue((prev) =>
+            prev.map((item) =>
+              item === uploadItem ? { ...item, progress } : item
+            )
+          );
+        }
       );
 
       setUploadQueue((prev) =>
         prev.map((item) =>
           item === uploadItem
-            ? { ...item, status: "success", recordingId: response.id }
+            ? { ...item, status: "success", progress: 100, recordingId: response.id }
             : item
         )
       );
@@ -610,55 +620,112 @@ export default function OperationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="divide-y divide-border">
+            <div className="space-y-3">
               {uploadQueue.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                  className={`rounded-lg border p-3 transition-all duration-300 ${
+                    item.status === "uploading"
+                      ? "border-brand-tag/40 bg-brand-tag/5"
+                      : item.status === "success"
+                        ? "border-brand-green/40 bg-brand-green-soft/30"
+                        : "border-destructive/40 bg-destructive/5"
+                  }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
-                      item.status === "uploading"
-                        ? "bg-brand-tag/8"
-                        : item.status === "success"
-                          ? "bg-brand-green-soft"
-                          : "bg-destructive/8"
-                    }`}>
-                      {item.status === "uploading" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-brand-tag" />
-                      )}
-                      {item.status === "success" && (
-                        <CheckCircle className="h-4 w-4 text-brand-green-deep" />
-                      )}
-                      {item.status === "error" && (
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${
+                        item.status === "uploading"
+                          ? "bg-brand-tag/15"
+                          : item.status === "success"
+                            ? "bg-brand-green-soft"
+                            : "bg-destructive/10"
+                      }`}>
+                        {item.status === "uploading" && (
+                          <Loader2 className="h-5 w-5 animate-spin text-brand-tag" />
+                        )}
+                        {item.status === "success" && (
+                          <CheckCircle className="h-5 w-5 text-brand-green-deep" />
+                        )}
+                        {item.status === "error" && (
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink truncate">
+                          {item.file.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-steel">
+                            {item.salespersonName}
+                          </p>
+                          <span className="text-stone">•</span>
+                          <p className="text-xs text-stone font-mono">
+                            {new Date(item.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                          <span className="text-stone">•</span>
+                          <p className="text-xs text-stone font-mono">
+                            {formatFileSize(item.file.size)}
+                          </p>
+                        </div>
+
+                        {/* Progress bar for uploading */}
+                        {item.status === "uploading" && (
+                          <div className="mt-2.5">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-brand-tag">
+                                Uploading...
+                              </span>
+                              <span className="text-xs font-semibold text-brand-tag font-mono">
+                                {item.progress}%
+                              </span>
+                            </div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-brand-tag/15">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-brand-tag to-brand-green transition-all duration-300 ease-out"
+                                style={{ width: `${item.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Success message */}
+                        {item.status === "success" && (
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <CheckCircle className="h-3.5 w-3.5 text-brand-green-deep" />
+                            <span className="text-xs font-medium text-brand-green-deep">
+                              Upload complete — Processing started
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Error message */}
+                        {item.status === "error" && (
+                          <div className="mt-2 flex items-start gap-1.5">
+                            <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                            <span className="text-xs text-destructive">
+                              {item.error || "Upload failed"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">
-                        {item.file.name}
-                      </p>
-                      <p className="text-xs text-steel">
-                        {item.salespersonName}{" "}
-                        <span className="text-stone font-mono">
-                          {new Date(item.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </p>
+
+                    {/* Status badge */}
+                    <div className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      item.status === "uploading"
+                        ? "bg-brand-tag/15 text-brand-tag"
+                        : item.status === "success"
+                          ? "bg-brand-green-soft text-brand-green-deep"
+                          : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {item.status === "uploading"
+                        ? `${item.progress}%`
+                        : item.status === "success"
+                          ? "Done"
+                          : "Failed"}
                     </div>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    item.status === "uploading"
-                      ? "bg-brand-tag/8 text-brand-tag"
-                      : item.status === "success"
-                        ? "bg-brand-green-soft text-brand-green-deep"
-                        : "bg-destructive/8 text-destructive"
-                  }`}>
-                    {item.status === "uploading"
-                      ? "Uploading"
-                      : item.status === "success"
-                        ? "Done"
-                        : item.error || "Failed"}
-                  </span>
                 </div>
               ))}
             </div>

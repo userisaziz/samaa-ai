@@ -104,6 +104,88 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+// Upload with progress tracking using XMLHttpRequest
+function uploadWithProgress<T>(
+  endpoint: string,
+  formData: FormData,
+  onProgress?: (progress: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const token = getAccessToken();
+
+    xhr.open("POST", `${API_URL}${endpoint}`);
+
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+
+    // Track upload progress
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 100);
+          onProgress(percentComplete);
+        }
+      });
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response as T);
+        } catch {
+          reject(new Error("Failed to parse response"));
+        }
+      } else if (xhr.status === 401) {
+        // Handle token refresh
+        refreshAccessToken().then((newToken) => {
+          if (newToken) {
+            // Retry with new token
+            const retryXhr = new XMLHttpRequest();
+            retryXhr.open("POST", `${API_URL}${endpoint}`);
+            retryXhr.setRequestHeader("Authorization", `Bearer ${newToken}`);
+            retryXhr.onload = () => {
+              if (retryXhr.status >= 200 && retryXhr.status < 300) {
+                try {
+                  resolve(JSON.parse(retryXhr.responseText) as T);
+                } catch {
+                  reject(new Error("Failed to parse response"));
+                }
+              } else {
+                reject(new ApiError(retryXhr.status, retryXhr.statusText));
+              }
+            };
+            retryXhr.onerror = () => reject(new Error("Network error"));
+            retryXhr.send(formData);
+          } else {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+            reject(new ApiError(401, "Session expired"));
+          }
+        });
+      } else {
+        let detail = xhr.statusText;
+        try {
+          const body = JSON.parse(xhr.responseText);
+          detail = body.detail || detail;
+        } catch {
+          // ignore parse error
+        }
+        reject(new ApiError(xhr.status, detail));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.ontimeout = () => reject(new Error("Request timeout"));
+
+    xhr.send(formData);
+  });
+}
+
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint),
 
@@ -112,6 +194,9 @@ export const api = {
       method: "POST",
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
+
+  upload: <T>(endpoint: string, formData: FormData, onProgress?: (progress: number) => void) =>
+    uploadWithProgress<T>(endpoint, formData, onProgress),
 
   put: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, {
