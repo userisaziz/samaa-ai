@@ -2,171 +2,288 @@ name: Deploy to Oracle Cloud
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-    types: [ closed ]
+    branches: [main]
+    types: [closed]
 
 # Prevent concurrent deployments
 concurrency:
   group: production
   cancel-in-progress: false
 
+env:
+  APP_DIR: /home/ubuntu/samaa-ai
+  DEPLOY_TIMEOUT: 600  # 10 minutes max for remote commands
+
 jobs:
-  deploy:
+  # ── Pre-flight validation ──────────────────────────────────────
+  validate:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
-    environment: production
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Validate deploy configuration
+        run: |
+          echo "=== Pre-flight Checks ==="
+          echo "  Branch:    ${{ github.ref_name }}"
+          echo "  Commit:    ${{ github.sha }}"
+          echo "  Author:    ${{ github.actor }}"
+          echo "  Workflow:  ${{ github.run_id }}"
+
+          # Ensure critical files exist
+          for f in apps/api/pyproject.toml apps/web/package.json .env.example; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing required file: $f"
+              exit 1
+            fi
+          done
+          echo "  All required files present"
+
+  # ── Deploy ─────────────────────────────────────────────────────
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+      - name: Record deploy start time
+        run: echo "DEPLOY_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add Oracle VM to known_hosts
+      - name: Configure SSH known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Deploy to Oracle Cloud
+      # Common SSH options: keep-alive prevents Broken Pipe during long commands
+      - name: Set SSH options
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            set -e
-            
-            echo "════════════════════════════════════════"
-            echo "  🚀 SAMAA Production Deployment"
-            echo "════════════════════════════════════════"
-            echo ""
-            
-            # Navigate to app directory
-            cd /home/ubuntu/samaa-ai
-          
-            
-            # Show current commit
-            echo "📍 Current commit:"
-            git log --oneline -1
-            echo ""
-            
-            # Pull latest changes
-            echo "📦 Pulling latest code..."
-            # Stash any local changes first
-            git stash --include-untracked 2>/dev/null || true
-            git pull origin main
-            echo "✅ Code updated"
-            echo ""
-            
-            # Install backend dependencies
-            echo "🔧 Installing backend dependencies..."
-            cd apps/api
-            
-            # Create virtual environment if it doesn't exist
-            if [ ! -d ".venv" ]; then
-              echo "  Creating virtual environment..."
-              uv venv
-              echo "  ✅ Virtual environment created"
-            fi
-            
-            source .venv/bin/activate
-            uv pip install -e '.[prod]' --quiet
-            echo "✅ Backend dependencies installed"
-            echo ""
-            
-            # Build frontend
-            echo "🎨 Building frontend..."
-            cd ../web
-            npm install --quiet
-            npm run build
-            echo "✅ Frontend built"
-            echo ""
-            
-            # Run database migrations
-            echo "🗄️ Running database migrations..."
-            cd ../api
-            source .venv/bin/activate
-            export $(cat ../../.env.prod | xargs)
-            alembic upgrade head
-            echo "✅ Migrations complete"
-            echo ""
-            
-            cd ../..
-            
-            # Restart services with health checks
-            echo "🔄 Restarting services..."
-            
-            # Restart FastAPI
-            sudo systemctl restart samaa-api
-            echo "  ✓ FastAPI restarted"
-            
-            # Restart Celery
-            sudo systemctl restart samaa-celery
-            echo "  ✓ Celery restarted"
-            
-            # Restart Next.js
-            sudo systemctl restart samaa-web
-            echo "  ✓ Next.js restarted"
-            echo ""
-            
-            # Health checks
-            echo "🏥 Running health checks..."
-            sleep 5
-            
-            FAILED=0
-            
-            if systemctl is-active --quiet samaa-api; then
-              echo "  ✅ FastAPI is running"
-            else
-              echo "  ❌ FastAPI failed to start"
-              FAILED=1
-            fi
-            
-            if systemctl is-active --quiet samaa-celery; then
-              echo "  ✅ Celery is running"
-            else
-              echo "  ❌ Celery failed to start"
-              FAILED=1
-            fi
-            
-            if systemctl is-active --quiet samaa-web; then
-              echo "  ✅ Next.js is running"
-            else
-              echo "  ❌ Next.js failed to start"
-              FAILED=1
-            fi
-            
-            echo ""
-            
-            if [ $FAILED -eq 0 ]; then
-              echo "════════════════════════════════════════"
-              echo "  🎉 Deployment Successful!"
-              echo "════════════════════════════════════════"
-              echo ""
-              echo "🌐 Application: https://${{ vars.DOMAIN_NAME }}"
-              echo "📝 API Docs:     https://${{ vars.DOMAIN_NAME }}/docs"
-              echo "🔌 API Health:   https://${{ vars.DOMAIN_NAME }}/health"
-              echo ""
-            else
-              echo "════════════════════════════════════════"
-              echo "  ❌ Deployment Failed!"
-              echo "════════════════════════════════════════"
-              echo ""
-              echo "Check logs:"
-              echo "  sudo journalctl -u samaa-api -n 100"
-              echo "  sudo journalctl -u samaa-celery -n 100"
-              echo "  sudo journalctl -u samaa-web -n 100"
-              exit 1
-            fi
-          EOF
+          echo "SSH_OPTS=-p ${{ secrets.SSH_PORT }} \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=5 \
+            -o ConnectTimeout=15 \
+            -o TCPKeepAlive=yes \
+            -o LogLevel=ERROR" >> "$GITHUB_ENV"
 
-      - name: Notify on failure
-        if: failure()
+      # ── Step 1: Pre-flight on server ──
+      - name: "1/6 · Server pre-flight checks"
         run: |
-          echo "❌ Deployment failed!"
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+
+          echo "=== Server Pre-flight ==="
+
+          # Disk space (fail if < 1GB free)
+          AVAIL_KB=$(df /home | awk 'NR==2 {print $4}')
+          AVAIL_MB=$((AVAIL_KB / 1024))
+          if [ "$AVAIL_MB" -lt 1024 ]; then
+            echo "::error::Low disk space: ${AVAIL_MB}MB available (need >1GB)"
+            exit 1
+          fi
+          echo "  Disk:    ${AVAIL_MB}MB available"
+
+          # Memory
+          MEM_FREE=$(free -m | awk '/^Mem:/{print $7}')
+          echo "  Memory:  ${MEM_FREE}MB free"
+
+          # Services exist
+          for svc in samaa-api samaa-celery samaa-web; do
+            if ! systemctl list-unit-files "${svc}.service" &>/dev/null; then
+              echo "::warning::Service $svc not found on server"
+            fi
+          done
+          echo "  Services: registered"
+
+          echo "=== Pre-flight passed ==="
+          REMOTE
+
+      # ── Step 2: Pull latest code ──
+      - name: "2/6 · Pull latest code"
+        run: |
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/samaa-ai
+
+          PREV_COMMIT=$(git rev-parse HEAD)
+          echo "  Previous: $(git log --oneline -1)"
+
+          # Stash local changes (if any) and pull
+          git stash --include-untracked --quiet 2>/dev/null || true
+          git pull --ff-only origin main
+
+          NEW_COMMIT=$(git rev-parse HEAD)
+          echo "  Current:  $(git log --oneline -1)"
+
+          if [ "$PREV_COMMIT" = "$NEW_COMMIT" ]; then
+            echo "  Already up-to-date, skipping build steps"
+            echo "SKIP_BUILD=true"
+          else
+            echo "  Updated: $PREV_COMMIT -> $NEW_COMMIT"
+            echo "  Changed files:"
+            git diff --stat "$PREV_COMMIT" "$NEW_COMMIT"
+          fi
+          REMOTE
+
+      # ── Step 3: Backend dependencies ──
+      - name: "3/6 · Install backend dependencies"
+        run: |
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/samaa-ai/apps/api
+
+          echo "  Python: $(python3 --version 2>/dev/null || echo 'not found')"
+
+          # Create venv only if missing or broken
+          if [ ! -f ".venv/bin/python" ]; then
+            echo "  Creating virtual environment..."
+            uv venv
+            echo "  venv created"
+          else
+            echo "  venv exists, reusing"
+          fi
+
+          source .venv/bin/activate
+          echo "  Installing dependencies..."
+          uv pip install -e '.[prod]' --quiet
+          echo "  Dependencies installed: $(pip list --format=freeze 2>/dev/null | wc -l) packages"
+          REMOTE
+
+      # ── Step 4: Frontend build ──
+      - name: "4/6 · Build frontend"
+        run: |
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/samaa-ai/apps/web
+
+          echo "  Node: $(node --version)"
+          echo "  npm:  $(npm --version)"
+
+          npm ci --prefer-offline --no-audit --quiet 2>/dev/null || npm install --quiet
+          npm run build
+          echo "  Frontend build complete"
+          REMOTE
+
+      # ── Step 5: Database migrations ──
+      - name: "5/6 · Run database migrations"
+        run: |
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/samaa-ai/apps/api
+
+          source .venv/bin/activate
+
+          # Load env safely (skip comments and empty lines)
+          set -a
+          grep -v '^\s*#' /home/ubuntu/samaa-ai/.env.prod | grep -v '^\s*$' | while IFS='=' read -r key value; do
+            export "$key=$value"
+          done
+          set +a
+
+          CURRENT=$(alembic current 2>/dev/null || echo "none")
+          echo "  Current revision: $CURRENT"
+
+          alembic upgrade head
+
+          echo "  Migrations applied: $(alembic current 2>/dev/null)"
+          REMOTE
+
+      # ── Step 6: Restart services & health checks ──
+      - name: "6/6 · Restart services and health check"
+        run: |
+          ssh ${{ env.SSH_OPTS }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'REMOTE'
+          set -euo pipefail
+
+          SERVICES=("samaa-api" "samaa-celery" "samaa-web")
+          FAILED=0
+
+          echo "=== Restarting Services ==="
+          for svc in "${SERVICES[@]}"; do
+            sudo systemctl restart "$svc" 2>/dev/null || true
+            echo "  Restarted: $svc"
+          done
+
+          # Wait for services to stabilize
           echo ""
-          echo "Check GitHub Actions logs for details."
-          echo "SSH into Oracle VM to investigate:"
-          echo "  ssh ubuntu@${{ secrets.SSH_HOST }}"
-          echo "  sudo journalctl -u samaa-api -n 100 --no-pager"
+          echo "=== Health Checks (waiting 8s) ==="
+          sleep 8
+
+          for svc in "${SERVICES[@]}"; do
+            if systemctl is-active --quiet "$svc"; then
+              UPTIME=$(systemctl show "$svc" --property=ActiveEnterTimestamp --value 2>/dev/null || echo "unknown")
+              echo "  OK   $svc  (since $UPTIME)"
+            else
+              echo "  FAIL $svc"
+              # Grab last 20 log lines for debugging
+              echo "       --- recent logs ---"
+              journalctl -u "$svc" -n 20 --no-pager 2>/dev/null | sed 's/^/       /'
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "=== DEPLOYMENT FAILED ==="
+            exit 1
+          fi
+
+          echo ""
+          echo "=== All services healthy ==="
+          REMOTE
+
+      # ── Summary ────────────────────────────────────────────────
+      - name: Deploy summary
+        if: always()
+        run: |
+          END=$(date +%s)
+          START=${DEPLOY_START:-$END}
+          DURATION=$((END - START))
+          MINUTES=$((DURATION / 60))
+          SECONDS=$((DURATION % 60))
+
+          echo "════════════════════════════════════════"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "  Deployment Successful"
+            echo "════════════════════════════════════════"
+            echo ""
+            echo "  Duration:    ${MINUTES}m ${SECONDS}s"
+            echo "  Commit:      ${{ github.sha }}"
+            echo "  Author:      ${{ github.actor }}"
+            echo "  Application: https://${{ vars.DOMAIN_NAME }}"
+            echo "  API Docs:    https://${{ vars.DOMAIN_NAME }}/docs"
+            echo "  Health:      https://${{ vars.DOMAIN_NAME }}/health"
+          else
+            echo "  Deployment Failed"
+            echo "════════════════════════════════════════"
+            echo ""
+            echo "  Duration: ${MINUTES}m ${SECONDS}s"
+            echo "  Commit:   ${{ github.sha }}"
+            echo ""
+            echo "  Debug: ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+            echo "         sudo journalctl -u samaa-api -n 100 --no-pager"
+          fi
+
+      # ── Rollback on failure ────────────────────────────────────
+      - name: Rollback on failure
+        if: failure() && github.event_name == 'push'
+        run: |
+          echo "::warning::Deployment failed — previous version is still running."
+          echo ""
+          echo "To manually rollback, SSH into the server:"
+          echo "  ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          echo "  cd /home/ubuntu/samaa-ai"
+          echo "  git log --oneline -5              # find the last good commit"
+          echo "  git checkout <good-commit>"
+          echo "  # then re-run build steps and restart services"

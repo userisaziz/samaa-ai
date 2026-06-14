@@ -1,4 +1,7 @@
 # Production Deployment Guide: Managed Services Architecture
+<!-- ssh -i '/Users/almabetter/Downloads/ssh-key-2026-06-14.key' ubuntu@92.4.87.24 -->
+
+
 
 ## Architecture Overview
 
