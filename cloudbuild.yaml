@@ -3,46 +3,49 @@
 steps:
   # Configure Docker for Artifact Registry
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args: ['auth', 'configure-docker', 'us-central1-docker.pkg.dev', '--quiet']
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
     id: 'auth-docker'
 
-  # Build API image
+  # Build and Push API image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG}', '-f', 'Dockerfile', '.']
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG} \
+          -f Dockerfile \
+          .
     dir: 'apps/api'
     waitFor: ['auth-docker']
-    id: 'build-api'
+    id: 'build-push-api'
 
-  # Build Frontend image
+  # Build and Push Frontend image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG}', '-f', 'apps/web/Dockerfile', '.']
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG} \
+          -f apps/web/Dockerfile \
+          .
     waitFor: ['auth-docker']
-    id: 'build-web'
+    id: 'build-push-web'
 
-  # Build Landing page image
+  # Build and Push Landing page image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-landing:${_TAG}', '-f', 'apps/landing/Dockerfile', '.']
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-landing:${_TAG} \
+          -f apps/landing/Dockerfile \
+          .
     waitFor: ['auth-docker']
-    id: 'build-landing'
-
-  # Push API image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG}']
-    waitFor: ['build-api']
-    id: 'push-api'
-
-  # Push Frontend image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG}']
-    waitFor: ['build-web']
-    id: 'push-web'
-
-  # Push Landing image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-landing:${_TAG}']
-    waitFor: ['build-landing']
-    id: 'push-landing'
+    id: 'build-push-landing'
 
   # Deploy API to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -64,7 +67,7 @@ steps:
       - '--set-env-vars=APP_ENV=production,APP_DEBUG=false,PIPELINE_MODE=cloud-only'
       - '--env-vars-file=apps/api/.env.prod'
       - '--allow-unauthenticated'
-    waitFor: ['push-api']
+    waitFor: ['build-push-api']
     id: 'deploy-api'
 
   # Deploy Frontend to Cloud Run
@@ -87,7 +90,7 @@ steps:
       - '--set-env-vars=NEXT_PUBLIC_API_URL=/api/v1'
       - '--env-vars-file=apps/web/.env.prod'
       - '--allow-unauthenticated'
-    waitFor: ['push-web', 'deploy-api']
+    waitFor: ['build-push-web', 'deploy-api']
     id: 'deploy-web'
 
   # Deploy Landing page to Cloud Run
@@ -108,7 +111,7 @@ steps:
       - '--concurrency=100'
       - '--timeout=30'
       - '--allow-unauthenticated'
-    waitFor: ['push-landing']
+    waitFor: ['build-push-landing']
     id: 'deploy-landing'
 
   # Run database migrations

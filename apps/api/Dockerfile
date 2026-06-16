@@ -12,8 +12,8 @@ WORKDIR /app
 # Copy pyproject.toml and install dependencies
 COPY pyproject.toml .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir .
+# Install Python dependencies (cloud-only: no torch/pyannote/ML packages)
+RUN pip install --no-cache-dir .[cloud]
 
 # Copy application code
 COPY src/ ./src/
