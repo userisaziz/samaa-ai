@@ -10,6 +10,13 @@ import logging
 import os
 
 from src.config import settings
+from src.services.pipeline_progress import (
+    log_stage_start,
+    log_stage_complete,
+    log_stage_error,
+    log_pipeline_complete,
+    log_pipeline_halted,
+)
 from src.workers.pipeline_control import PipelineHalted
 from src.workers.preprocessing import (
     preprocess_audio,
@@ -54,7 +61,7 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
     6. If last stage, marks recording COMPLETED
     """
     if stage_index >= len(STAGES):
-        _update_status(recording_id, "COMPLETED")
+        log_pipeline_complete(recording_id, len(STAGES))
         logger.info("[%s] Pipeline completed", recording_id)
         return
 
@@ -81,20 +88,24 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
                     enqueue_next_stage_cloud_tasks(recording_id, pipeline_version, next_path)
                     logger.info("[%s] Enqueued next stage (skipped): %s", recording_id, next_path)
             else:
-                _update_status(recording_id, "COMPLETED")
+                log_pipeline_complete(recording_id, len(STAGES))
                 logger.info("[%s] Pipeline completed", recording_id)
             return
     
     # Duplicate task prevention: check if recording is already processing this stage
     # by comparing current status with expected status for this stage
+    # MUST run BEFORE log_stage_start (which overwrites status to TRANSCRIBING)
     current_recording = _get_recording_sync(recording_id)
-    if current_recording and current_recording.status == status_label:
+    if current_recording and current_recording.get("status") == status_label:
         # Status already set to this stage's label - another task is likely running
         logger.warning(
             "[%s] Stage %d/%d: %s already in progress (status=%s) — skipping duplicate task",
             recording_id, stage_index + 1, len(STAGES), stage_name, status_label,
         )
         return
+    
+    # Log stage start with progress tracking (updates status to TRANSCRIBING etc.)
+    log_stage_start(recording_id, stage_name, len(STAGES), stage_index)
     
     logger.info(
         "[%s] Running stage %d/%d: %s",
@@ -104,6 +115,9 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
     try:
         func(recording_id)
         _update_status(recording_id, status_label)
+        
+        # Log stage completion
+        log_stage_complete(recording_id, stage_name, len(STAGES), stage_index)
 
         # Enqueue next stage (dev: Celery, prod: Cloud Tasks)
         if stage_index + 1 < len(STAGES):
@@ -119,7 +133,7 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
                 enqueue_next_stage_cloud_tasks(recording_id, pipeline_version, next_path)
                 logger.info("[%s] Enqueued next stage via Cloud Tasks: %s", recording_id, next_path)
         else:
-            _update_status(recording_id, "COMPLETED")
+            log_pipeline_complete(recording_id, len(STAGES))
             logger.info("[%s] Pipeline completed", recording_id)
 
     except PipelineHalted as e:
@@ -136,6 +150,9 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
         state = get_state_sync(recording_id)
         retry_count = state.get("retry_count", {}).get(stage_name, 0)
         
+        # Log pipeline halt with retry information
+        log_pipeline_halted(recording_id, stage_name, str(e), retry_count, MAX_RETRIES)
+        
         if retry_count >= MAX_RETRIES:
             logger.error(
                 "[%s] Stage %s exceeded retry limit (%d/%d). Halting pipeline.",
@@ -150,6 +167,9 @@ def run_stage(recording_id: str, pipeline_version: str, stage_index: int, force_
     except Exception as e:
         logger.error("[%s] Stage %s failed: %s", recording_id, path, e, exc_info=True)
         _update_status(recording_id, "FAILED", str(e))
+        
+        # Log stage error
+        log_stage_error(recording_id, stage_name, str(e), len(STAGES), stage_index)
         
         # Mark stage failed in pipeline_state
         from src.services.pipeline_state import mark_stage_failed_sync

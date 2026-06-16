@@ -65,3 +65,8 @@ require_operator = RoleChecker([UserRole.OPERATOR])
 require_operator_up = RoleChecker([
     UserRole.SUPER_ADMIN, UserRole.OPERATOR
 ])
+# Dashboard read access — all authenticated roles including OPERATOR
+require_authenticated = RoleChecker([
+    UserRole.SUPER_ADMIN, UserRole.OPERATOR,
+    UserRole.BRAND_ADMIN, UserRole.STORE_MANAGER, UserRole.SALESPERSON,
+])

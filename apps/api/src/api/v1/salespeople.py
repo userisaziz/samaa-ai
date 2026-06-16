@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.deps import require_salesperson_up, require_store_manager_up, require_operator_up
+from src.api.deps import require_salesperson_up, require_store_manager_up
 from src.database import get_db
 from src.models.user import User
 from src.schemas.salesperson import (
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/salespeople", tags=["Salespeople"])
 async def get_salespeople(
     store_id: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(require_operator_up),
+    _user: User = Depends(require_store_manager_up),
 ):
     return await list_salespeople(db, store_id=store_id)
 
@@ -41,7 +41,7 @@ async def create_new_salesperson(
 async def get_salesperson_detail(
     salesperson_id: str,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(require_operator_up),
+    _user: User = Depends(require_store_manager_up),
 ):
     salesperson = await get_salesperson(db, salesperson_id)
     if not salesperson:

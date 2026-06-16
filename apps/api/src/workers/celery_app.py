@@ -1,47 +1,44 @@
-"""Celery app for local development task queue.
 
-Production uses Cloud Tasks, but Celery provides:
-- Process isolation (vs threading's shared memory)
-- Retry logic and failure handling
-- Task visibility via Flower
-- DB connection pool safety
-
-Start local worker:
-  celery -A src.workers.celery_app worker --loglevel=info --pool=solo
-"""
+import os
 from celery import Celery
-from sqlalchemy.orm import configure_mappers
+import platform
 
-from src.config import settings
+# Set environment variables
+os.environ.setdefault('FSTAB_ENABLED', 'false')
 
-# Import all models to register them with the mapper registry
-from src.models import (
-    brand, conversation, recording,
-    salesperson, store, transcript, user, metrics,
-)
+# Create Celery app
+app = Celery('samaa')
 
-# Configure relationships between all mapped models
-configure_mappers()
-
-celery_app = Celery(
-    "samaa",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
-    include=["src.workers.pipeline_worker"],
-)
-
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
+# Configure Celery from src.config.settings
+app.conf.update(
+    broker_url='redis://localhost:6379/0',
+    result_backend='redis://localhost:6379/1',
+    task_serializer='json',
+    result_serializer='json',
+    accept_content=['json'],
+    timezone='UTC',
     enable_utc=True,
     task_track_started=True,
-    # acks_late + prefetch_multiplier=1 ensures tasks are redelivered on worker crash.
-    # All pipeline tasks are idempotent (idempotency check at stage entry).
     task_acks_late=True,
-    worker_prefetch_multiplier=1,
-    # Global limits serve as upper bounds; individual tasks set their own tighter timeouts.
-    task_soft_time_limit=3600,   # 1 hour soft limit
-    task_time_limit=7200,        # 2 hour hard limit
+    worker_prefetch_multiplier=1,  # Process one task at a time
 )
+
+# Auto-discover tasks in workers module
+# Note: Explicitly import worker modules to register tasks
+import src.workers.pipeline_worker  # noqa: F401
+
+@app.on_after_configure.connect
+def on_after_configure(sender, **kwargs):
+    system = platform.system()
+    if system == "Darwin":
+        sender.conf.worker_pool = "solo"
+        sender.conf.worker_concurrency = 1
+        print(f"🍎 Detected macOS: Switched to 'solo' pool to prevent crashes.")
+    else:
+        if not sender.conf.worker_pool:
+            sender.conf.worker_pool = "prefork"
+        print(f"☁️ Detected Linux/Cloud: Using '{sender.conf.worker_pool}' pool.")
+
+@app.task(bind=True)
+def debug_task(self):
+    print(f'Request: {self.request!r}')

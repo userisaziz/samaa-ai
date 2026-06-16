@@ -83,14 +83,14 @@ class TestBuildConversationTurns:
         """Test custom gap threshold parameter."""
         words = [
             {"word": "Hello", "start_time": 0.1, "end_time": 0.5, "speaker_label": "Speaker_A"},
-            {"word": "world", "start_time": 1.2, "end_time": 1.5, "speaker_label": "Speaker_A"},  # Gap 0.7s
+            {"word": "world", "start_time": 2.0, "end_time": 2.5, "speaker_label": "Speaker_A"},  # Gap 1.5s
         ]
 
-        # With 1.0s threshold, should split (gap > threshold)
+        # With 1.0s threshold, should split (gap 1.5 > threshold)
         result_1s = build_conversation_turns(words, gap_threshold=1.0)
         assert len(result_1s) == 2
 
-        # With 2.0s threshold, should merge (gap < threshold)
+        # With 2.0s threshold, should merge (gap 1.5 < threshold)
         result_2s = build_conversation_turns(words, gap_threshold=2.0)
         assert len(result_2s) == 1
         assert result_2s[0]["text"] == "Hello world"

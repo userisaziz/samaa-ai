@@ -53,7 +53,7 @@ async def list_recordings_endpoint(
     date_from: str | None = None,
     date_to: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(require_operator_up),
+    _user: User = Depends(require_salesperson_up),
 ):
     date_from_dt = None
     date_to_dt = None

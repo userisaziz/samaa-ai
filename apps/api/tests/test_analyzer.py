@@ -2,10 +2,10 @@
 import pytest
 
 from src.ai.analyzer import (
-    _format_transcript,
     _parse_analysis_response,
     _validate_analysis,
 )
+from src.ai.utils import format_transcript as _format_transcript
 from src.ai.scorer import (
     _normalize_scores,
     _parse_scores_response,

@@ -26,12 +26,11 @@ async def reprocess(recording_id: str):
         await session.flush()
         await session.commit()
         
-        # Restart pipeline
-        from src.workers.pipeline import start_processing_pipeline
-        result = start_processing_pipeline(str(recording.id))
+        # Restart pipeline via dual-mode dispatcher (Celery in dev, Cloud Tasks in prod)
+        from src.workers.pipeline import enqueue_first_stage
+        enqueue_first_stage(str(recording.id))
         
-        print(f"Pipeline started! Task ID: {result.id}")
-        print("Check celery.log for progress")
+        print(f"Pipeline started! Check celery.log (dev) or Cloud Tasks console (prod)")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -89,6 +89,7 @@ def _get_recording_sync(recording_id: str) -> dict | None:
             "id": str(rec.id),
             "file_url": rec.file_url,
             "format": rec.format,
+            "status": rec.status.value if rec.status else None,
         }
 
 
@@ -624,12 +625,20 @@ def preprocess_audio(recording_id: str) -> str:
 
             # ------------------------------------------------------------------
             # 6. Split chunks on disk + upload immediately (ffmpeg seek+cut)
+            #    For short recordings (needs_chunking=False), also upload the
+            #    full preprocessed audio for the transcription fast path.
             # ------------------------------------------------------------------
             logger.info(
                 "[%s] Splitting into %d chunks (needs_chunking=%s)",
                 recording_id, len(manifest["chunks"]), manifest["needs_chunking"],
             )
             _split_and_upload_chunks_ffmpeg(output_path, manifest, recording_id, storage, tmpdir)
+            
+            # Upload full preprocessed audio for transcription fast path
+            if not manifest["needs_chunking"]:
+                audio_key = f"preprocessed/{recording_id}/audio.wav"
+                _upload_audio_from_file_sync(storage, output_path, audio_key)
+                logger.info("[%s] Uploaded full preprocessed audio: %s", recording_id, audio_key)
 
             # ------------------------------------------------------------------
             # 7. Persist manifest to DB + storage
