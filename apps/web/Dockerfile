@@ -17,6 +17,11 @@ RUN npm ci --workspace=apps/web --include-workspace-root 2>/dev/null || npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Build-time environment variables
+ARG NEXT_PUBLIC_API_URL=/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NODE_ENV=production
+
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy shared package source (used as workspace dep)
