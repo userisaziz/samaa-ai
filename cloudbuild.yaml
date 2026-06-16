@@ -17,9 +17,10 @@ steps:
     args:
       - '-c'
       - |
-        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG} \
+        docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG} \
           -f Dockerfile \
-          .
+          . && \
+        docker push us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-api:${_TAG}
     dir: 'apps/api'
     waitFor: ['auth-docker']
     id: 'build-push-api'
@@ -30,9 +31,10 @@ steps:
     args:
       - '-c'
       - |
-        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG} \
+        docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG} \
           -f apps/web/Dockerfile \
-          .
+          . && \
+        docker push us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-web:${_TAG}
     waitFor: ['auth-docker']
     id: 'build-push-web'
 
