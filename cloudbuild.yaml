@@ -1,5 +1,6 @@
-# Cloud Build config for CXSAMAA — 3 services: API + Dashboard + Landing
-# The AI pipeline runs locally; Cloud Run is a thin upload + dashboard + marketing layer.
+# Cloud Build config for CXSAMAA — 2 services: API + Dashboard
+# The AI pipeline runs locally; Cloud Run is a thin upload + dashboard layer.
+# Landing page temporarily disabled due to build issues.
 steps:
   # Configure Docker for Artifact Registry
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -35,17 +36,7 @@ steps:
     waitFor: ['auth-docker']
     id: 'build-push-web'
 
-  # Build and Push Landing page image
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - |
-        docker build --push -t us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-landing:${_TAG} \
-          -f apps/landing/Dockerfile \
-          .
-    waitFor: ['auth-docker']
-    id: 'build-push-landing'
+
 
   # Deploy API to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -93,26 +84,7 @@ steps:
     waitFor: ['build-push-web', 'deploy-api']
     id: 'deploy-web'
 
-  # Deploy Landing page to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'samaa-landing'
-      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/samaa-registry/samaa-landing:${_TAG}'
-      - '--region=${_REGION}'
-      - '--platform=managed'
-      - '--port=8080'
-      - '--cpu=1'
-      - '--memory=256Mi'
-      - '--min-instances=0'
-      - '--max-instances=3'
-      - '--concurrency=100'
-      - '--timeout=30'
-      - '--allow-unauthenticated'
-    waitFor: ['build-push-landing']
-    id: 'deploy-landing'
+
 
   # Run database migrations
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

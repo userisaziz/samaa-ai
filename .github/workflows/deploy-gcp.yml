@@ -1,9 +1,9 @@
-# deploy-gcp.yml — Deploy 3 services to GCP Cloud Run
+# deploy-gcp.yml — Deploy 2 services to GCP Cloud Run
 #
 # Triggers: push to main
 # Auth:     Workload Identity Federation (no keys!)
 # Build:    Cloud Build via cloudbuild.yaml
-# Services: samaa-api (FastAPI) + samaa-web (Next.js) + samaa-landing (Vite SPA)
+# Services: samaa-api (FastAPI) + samaa-web (Next.js)
 name: Deploy to GCP Cloud Run
 
 on:
@@ -151,21 +151,7 @@ jobs:
             echo "::warning::Web returned HTTP ${HTTP_CODE} (may redirect to login)"
           fi
 
-      - name: Health check — Landing
-        run: |
-          LANDING_URL=$(gcloud run services describe samaa-landing \
-            --region=${{ env.REGION }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --format='value(status.url)')
-          echo "  Landing URL: ${LANDING_URL}"
 
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${LANDING_URL}/healthz")
-          if [ "${HTTP_CODE}" = "200" ]; then
-            echo "  Landing health: OK"
-          else
-            echo "::error::Landing health check failed (HTTP ${HTTP_CODE})"
-            exit 1
-          fi
 
       # ── Summary ──────────────────────────────────────────────────────────────
       - name: Deploy summary
