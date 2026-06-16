@@ -3,7 +3,7 @@ import logging
 import uuid
 
 
-from src.ai.role_classifier import classify_speaker_roles
+from src.ai.role_classifier import classify_speaker_roles as _classify_speaker_roles_llm
 from src.config import settings
 from src.models.recording import RecordingStatus
 from src.models.transcript import ConversationTurn, SpeakerRole
@@ -102,7 +102,7 @@ def classify_speaker_roles(recording_id: str) -> str:
         logger.info("[%s] Classifying roles from %d turns", recording_id, len(conversation_turns))
 
         # Classify speaker roles
-        classifications = classify_speaker_roles(conversation_turns, use_llm=True)
+        classifications = _classify_speaker_roles_llm(conversation_turns, use_llm=True)
 
         if not classifications:
             logger.warning("[%s] No role classifications produced — leaving existing roles", recording_id)

@@ -1,6 +1,6 @@
-# SAMAA — Sales Audio Management & AI Analysis
+# CXSAMAA — Customer Experience Audio Management & AI Analysis
 
-SAMAA is a full-stack platform for uploading, transcribing, diarizing, analyzing, and scoring sales call recordings. It uses NVIDIA NIM APIs for STT/diarization/LLM and provides a dashboard for browsing conversations, metrics, and exports.
+CXSAMAA is a full-stack platform for uploading, transcribing, diarizing, analyzing, and scoring customer interaction recordings. It uses NVIDIA NIM APIs for STT/diarization/LLM and provides a dashboard for browsing conversations, metrics, and exports.
 
 
 
@@ -43,7 +43,7 @@ SAMAA is a full-stack platform for uploading, transcribing, diarizing, analyzing
 
 ## Workflow Video
 
-Watch the complete SAMAA workflow demonstration:
+Watch the complete CXSAMAA workflow demonstration:
 
 🎥 [**Watch Workflow Video**](https://flonnect.com/video/5767d219690c-4854-b71b-fefeb93a86b7)
 

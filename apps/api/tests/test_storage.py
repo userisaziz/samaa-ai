@@ -76,6 +76,7 @@ class TestLocalStorage:
     def test_storage_get_signed_url(self):
         """LocalStorage returns local file path as signed URL."""
         from src.storage.local import LocalStorage
+        import asyncio
         import tempfile
         from unittest.mock import patch
         
@@ -83,7 +84,7 @@ class TestLocalStorage:
             storage = LocalStorage()
             path = "rec-123/audio.wav"
             
-            signed_url = storage.get_signed_url(path)
+            signed_url = asyncio.run(storage.get_signed_url(path))
             assert "rec-123" in signed_url
             assert "audio.wav" in signed_url
     

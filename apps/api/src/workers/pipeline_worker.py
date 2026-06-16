@@ -1,146 +1,72 @@
-"""Celery task definitions for pipeline stages.
+"""Celery transport layer for the AI pipeline.
 
-This module wraps the pipeline stage functions as Celery tasks for local development.
-Production uses Cloud Tasks, but Celery provides process isolation and retry logic
-that threading cannot match.
+This module is the Celery task wrapper ONLY. All pipeline business logic
+(idempotency, progress tracking, stage execution, dispatch) lives in
+``pipeline.py``. This file exists solely to bridge Celery's task registry
+with the pipeline orchestrator.
 
-Start worker:
-  celery -A src.workers.celery_app worker --loglevel=info --pool=solo
+Responsibilities:
+  - Register ``execute_stage`` as a Celery task
+  - Provide ``enqueue_next_stage_celery`` for dev-mode stage chaining
+  - Provide ``enqueue_first_stage_celery`` for pipeline kickoff
+
+NOT responsible for:
+  - Stage execution logic (see pipeline.py :: run_stage)
+  - Progress tracking (see services/pipeline_progress.py)
+  - State management (see services/pipeline_state.py)
+  - Cloud Tasks dispatch (see pipeline.py :: enqueue_next_stage_cloud_tasks)
 """
 import logging
 
-from src.workers.celery_app import celery_app
-from src.workers.pipeline import STAGES
-from src.workers.pipeline_control import PipelineHalted, _update_status
-from src.services.pipeline_state import (
-    is_stage_completed_sync,
-    mark_stage_failed_sync,
-)
+from src.workers.celery_app import app
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(
-    bind=True,
-    max_retries=3,
-    default_retry_delay=60,  # 1 minute between retries
-    acks_late=True,
-)
+@app.task(bind=True, max_retries=0, acks_late=True)
 def execute_stage(
     self,
     recording_id: str,
     pipeline_version: str,
     stage_index: int,
     force_rerun: bool = False,
-) -> dict:
-    """Execute a single pipeline stage as a Celery task.
+):
+    """Celery task entrypoint -- delegates entirely to ``pipeline.run_stage()``.
 
-    This is the Celery equivalent of pipeline.run_stage, with process
-    isolation and retry semantics.
-
-    Returns:
-        dict with stage execution result
+    Parameters
+    ----------
+    recording_id : str
+        UUID of the recording to process.
+    pipeline_version : str
+        Pipeline version tag (e.g. "v1") for message tracking.
+    stage_index : int
+        Zero-based index into ``pipeline.STAGES``.
+    force_rerun : bool
+        If True, skip idempotency check and re-execute the stage.
     """
-    # Pipeline completion check
-    if stage_index >= len(STAGES):
-        _update_status(recording_id, "COMPLETED")
-        logger.info("[%s] Pipeline completed", recording_id)
-        return {"status": "completed", "recording_id": recording_id}
-
-    path, func, status_label = STAGES[stage_index]
-    stage_name = path.split("/")[-1]
-
-    # Idempotency check — skip already-completed stages
-    if not force_rerun and is_stage_completed_sync(recording_id, stage_name):
-        logger.info(
-            "[%s] Skipping stage %d/%d: %s (already completed)",
-            recording_id, stage_index + 1, len(STAGES), stage_name,
-        )
-        _enqueue_next_or_complete(recording_id, pipeline_version, stage_index)
-        return {"status": "skipped", "stage": stage_name}
-
     logger.info(
-        "[%s] Running stage %d/%d: %s",
-        recording_id, stage_index + 1, len(STAGES), path,
+        "[celery] Executing stage %d for recording %s (version=%s, force=%s)",
+        stage_index,
+        recording_id,
+        pipeline_version,
+        force_rerun,
     )
-
-    try:
-        func(recording_id)
-        _update_status(recording_id, status_label)
-        _enqueue_next_or_complete(recording_id, pipeline_version, stage_index)
-        return {
-            "status": "success",
-            "stage": stage_name,
-            "recording_id": recording_id,
-        }
-
-    except PipelineHalted as e:
-        # Halt means: validation failed, do not retry, do not continue.
-        # fail_and_halt() already marked the recording FAILED before raising.
-        logger.warning("[%s] Pipeline halted at %s: %s", recording_id, path, e)
-        mark_stage_failed_sync(recording_id, stage_name, str(e))
-        return {"status": "halted", "stage": stage_name, "error": str(e)}
-
-    except Exception as e:
-        logger.error(
-            "[%s] Stage %s failed unexpectedly: %s",
-            recording_id, path, e, exc_info=True,
-        )
-        mark_stage_failed_sync(recording_id, stage_name, str(e))
-
-        # Let Celery handle retry counting via self.request.retries
-        if self.request.retries < self.max_retries:
-            logger.info(
-                "[%s] Retrying stage %s (%d/%d)",
-                recording_id, stage_name,
-                self.request.retries + 1, self.max_retries,
-            )
-            raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))
-
-        # Max retries exceeded
-        logger.error(
-            "[%s] Stage %s exceeded retry limit (%d). Halting.",
-            recording_id, stage_name, self.max_retries,
-        )
-        _update_status(
-            recording_id,
-            "FAILED",
-            f"Stage '{stage_name}' failed after {self.max_retries} retries: {e}",
-        )
-        return {"status": "failed", "stage": stage_name, "error": str(e)}
-
-
-def _enqueue_next_or_complete(
-    recording_id: str,
-    pipeline_version: str,
-    current_index: int,
-) -> None:
-    """Enqueue the next stage, or mark pipeline complete if this was the last."""
-    next_index = current_index + 1
-    if next_index < len(STAGES):
-        execute_stage.delay(
-            recording_id=recording_id,
-            pipeline_version=pipeline_version,
-            stage_index=next_index,
-            force_rerun=False,
-        )
-        logger.info(
-            "[%s] Enqueued next stage via Celery: %s",
-            recording_id, STAGES[next_index][0],
-        )
-    else:
-        _update_status(recording_id, "COMPLETED")
-        logger.info("[%s] Pipeline completed", recording_id)
+    from src.workers.pipeline import run_stage  # lazy import to avoid circular dependency
+    run_stage(recording_id, pipeline_version, stage_index, force_rerun)
 
 
 def enqueue_next_stage_celery(
     recording_id: str,
     pipeline_version: str,
-    next_index: int,
+    stage_index: int,
 ) -> None:
-    """Public wrapper to enqueue the next stage via Celery.
-    
-    Called from pipeline.py when skipping already-completed stages
-    or after successfully completing a stage.
+    """Dispatch the next pipeline stage via Celery (dev-mode).
+
+    Called by ``pipeline.run_stage()`` when ``settings.app_env == "development"``.
     """
-    _enqueue_next_or_complete(recording_id, pipeline_version, next_index)
+    execute_stage.delay(recording_id, pipeline_version, stage_index)
+    logger.info(
+        "[celery] Enqueued stage %d for recording %s",
+        stage_index,
+        recording_id,
+    )

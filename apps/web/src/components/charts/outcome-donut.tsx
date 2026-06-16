@@ -43,7 +43,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   );
 }
 
-export function OutcomeDonut({ data, title = "Conversation Outcomes", onOutcomeClick }: OutcomeDonutProps) {
+export function OutcomeDonut({ data, title = "Interaction Outcomes", onOutcomeClick }: OutcomeDonutProps) {
   const hasData = data.length > 0 && data.some((d) => d.count > 0);
 
   return (

@@ -57,12 +57,13 @@ def _get_conversation_segments_sync(conversation_id: str) -> list[dict]:
         end_time = conv.end_time
 
         # Get transcript segments within this time range
+        # Use overlap logic (not strict containment) to handle LLM boundary imprecision
         rows = (
             session.query(TranscriptSegment)
             .filter(
                 TranscriptSegment.recording_id == recording_id,
-                TranscriptSegment.start_time >= start_time,  # no lower buffer to avoid overlap
-                TranscriptSegment.end_time <= end_time + 1.0,
+                TranscriptSegment.start_time < end_time + 1.0,  # segment starts before conv ends
+                TranscriptSegment.end_time > start_time - 1.0,  # segment ends after conv starts
             )
             .order_by(TranscriptSegment.start_time)
             .all()
@@ -98,6 +99,7 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
             existing.outcome = analysis.get("outcome")
             existing.loss_reason = analysis.get("loss_reason")
             existing.confidence = analysis.get("confidence")
+            existing.scores = analysis.get("scores")
             existing.summary = analysis.get("summary")
             existing.coaching_notes = analysis.get("coaching_notes")
         else:
@@ -114,6 +116,7 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
                 outcome=analysis.get("outcome"),
                 loss_reason=analysis.get("loss_reason"),
                 confidence=analysis.get("confidence"),
+                scores=analysis.get("scores"),
                 summary=analysis.get("summary"),
                 coaching_notes=analysis.get("coaching_notes"),
             )

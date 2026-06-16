@@ -102,7 +102,7 @@ export function Sidebar() {
           <Headphones className="h-4.5 w-4.5 text-primary-foreground" />
         </div>
         <div>
-          <span className="text-lg font-semibold tracking-tight text-ink">SAMAA</span>
+          <span className="text-lg font-semibold tracking-tight text-ink">CXSAMAA</span>
           <p className="text-[11px] font-medium text-steel -mt-0.5">Audio Intelligence</p>
         </div>
       </div>

@@ -45,7 +45,7 @@ export function MobileSidebar({ children, breakpoint = "lg" }: MobileSidebarProp
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-semibold tracking-tight text-ink">SAMAA</span>
+        <span className="text-sm font-semibold tracking-tight text-ink">CXSAMAA</span>
       </div>
 
       {/* Slide-out drawer */}

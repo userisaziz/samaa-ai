@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
-from src.api.deps import require_brand_admin_up, require_operator_up, require_salesperson_up
+from src.api.deps import require_authenticated, require_brand_admin_up, require_operator_up, require_salesperson_up
 from src.database import get_db
 from src.models.user import User
 from src.schemas.recording import (
@@ -53,7 +53,7 @@ async def list_recordings_endpoint(
     date_from: str | None = None,
     date_to: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(require_operator_up),
+    _user: User = Depends(require_authenticated),
 ):
     date_from_dt = None
     date_to_dt = None
@@ -228,7 +228,6 @@ async def start_pipeline_endpoint(
     if recording.status == RecordingStatus.FAILED or recording.status in processing_statuses:
         recording.status = RecordingStatus.UPLOADED
         recording.error_message = None
-        await db.flush()
     
     # Update state to indicate pipeline starting
     from src.services.pipeline_state import update_state
@@ -236,6 +235,9 @@ async def start_pipeline_endpoint(
         "current_stage": "QUEUED",
         "last_updated_by": str(user.id)
     })
+    
+    # Commit before dispatching pipeline to avoid race condition
+    await db.commit()
     
     # Start pipeline (dev: run directly, prod: enqueue via Cloud Tasks)
     try:
@@ -252,10 +254,10 @@ async def start_pipeline_endpoint(
             from src.workers.pipeline import enqueue_first_stage
             enqueue_first_stage(recording_id, settings.pipeline_version)
     except Exception as e:
-        # Rollback status change if pipeline start fails
+        # Mark as FAILED if pipeline dispatch fails (status was already committed as UPLOADED)
         recording.status = RecordingStatus.FAILED
         recording.error_message = f"Failed to start pipeline: {str(e)}"
-        await db.flush()
+        await db.commit()
         
         logger.error(
             "Failed to start pipeline for recording %s: %s",
@@ -312,8 +314,16 @@ async def resume_pipeline_from_stage(
             detail="Can only resume FAILED or COMPLETED recordings",
         )
     
+    # Reset recording status to UPLOADED so it appears in active pipeline immediately
+    recording.status = RecordingStatus.UPLOADED
+    recording.error_message = None
+    
     # Reset stage and downstream
     new_state = await reset_stage_and_downstream(db, recording_id, from_stage, updated_by=str(user.id))
+    
+    # Commit changes before dispatching Celery task to avoid race condition
+    # The worker needs to see the updated status and pipeline_state
+    await db.commit()
     
     # Calculate stage index
     stage_index = STAGE_ORDER.index(from_stage)
@@ -396,7 +406,7 @@ async def retry_failed_stage(
     recording.pipeline_state = pipeline_state
     recording.status = RecordingStatus.UPLOADED  # Reset to allow pipeline start
     recording.error_message = None
-    await db.flush()
+    await db.commit()  # Commit before dispatching Celery task
     
     logger.info(
         "[%s] Retrying failed stage '%s' (index %d)",

@@ -10,8 +10,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SAMAA — Sales Audio Intelligence",
-  description: "Transform retail store audio into actionable business intelligence",
+  title: "CXSAMAA — Customer Experience Audio Intelligence",
+  description: "Transform customer interactions into actionable business intelligence",
 };
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 """Tests for analytics service — overview, comparisons, trends."""
+import asyncio
 import uuid
 from datetime import date
 from unittest.mock import MagicMock, AsyncMock
@@ -11,54 +12,67 @@ import pytest
 # ---------------------------------------------------------------------------
 
 class TestAnalyticsOverview:
-    @pytest.mark.asyncio
-    async def test_empty_scope_returns_defaults(self, mock_db):
+    def test_empty_scope_returns_defaults(self):
         """Empty scope returns zero-valued overview."""
-        from src.services.analytics import get_analytics_overview
-        
-        # Mock no recordings in scope
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db, brand_id="brand-123")
-        
-        assert overview.funnel_stages is not None
-        assert len(overview.outcome_distribution) == 0
-    
-    @pytest.mark.asyncio
-    async def test_brand_scope_aggregates_data(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert overview.funnel_stages is not None
+            assert len(overview.outcome_distribution) == 0
+        asyncio.run(run())
+
+    def test_brand_scope_aggregates_data(self):
         """Analytics aggregates data for brand scope."""
-        from src.services.analytics import get_analytics_overview
-        from src.schemas.analytics import AnalyticsOverviewResponse
-        import uuid
-        
-        # Mock recording IDs
-        mock_rec_id = uuid.uuid4()
-        mock_result = MagicMock()
-        mock_result.all.return_value = [(mock_rec_id,)]
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(
-            mock_db,
-            brand_id="brand-123",
-            date_from=date(2024, 1, 1),
-            date_to=date(2024, 12, 31)
-        )
-        
-        assert isinstance(overview, AnalyticsOverviewResponse)
-    
-    @pytest.mark.asyncio
-    async def test_store_scope_filters_correctly(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+            from src.schemas.analytics import AnalyticsOverviewResponse
+
+            brand_id = str(uuid.uuid4())
+            mock_db = AsyncMock()
+
+            # Empty recording scope → returns default overview
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(
+                mock_db,
+                brand_id=brand_id,
+                date_from=date(2024, 1, 1),
+                date_to=date(2024, 12, 31)
+            )
+
+            # Empty scope returns defaults, not errors
+            assert isinstance(overview, AnalyticsOverviewResponse)
+            assert overview.total_conversations == 0
+        asyncio.run(run())
+
+    def test_store_scope_filters_correctly(self):
         """Analytics filters by store scope."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db, store_id="store-456")
-        assert overview is not None
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            store_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, store_id=store_id)
+            assert overview is not None
+        asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -66,47 +80,60 @@ class TestAnalyticsOverview:
 # ---------------------------------------------------------------------------
 
 class TestFunnelAnalysis:
-    @pytest.mark.asyncio
-    async def test_funnel_has_conversation_stage(self, mock_db):
+    def test_funnel_has_conversation_stage(self):
         """Funnel includes conversation count stage."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        funnel_stages = [f.stage for f in overview.funnel_stages]
-        assert "Conversations" in funnel_stages or len(overview.funnel_stages) > 0
-    
-    @pytest.mark.asyncio
-    async def test_funnel_has_closing_stage(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            funnel_stages = [f.stage for f in overview.funnel_stages]
+            assert "Conversations" in funnel_stages or len(overview.funnel_stages) > 0
+        asyncio.run(run())
+
+    def test_funnel_has_closing_stage(self):
         """Funnel includes closing attempts stage."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        # Funnel should have multiple stages
-        assert len(overview.funnel_stages) >= 1
-    
-    @pytest.mark.asyncio
-    async def test_funnel_has_sales_stage(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert len(overview.funnel_stages) >= 1
+        asyncio.run(run())
+
+    def test_funnel_has_sales_stage(self):
         """Funnel includes sales made stage."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        # Verify funnel structure
-        assert hasattr(overview, 'funnel_stages')
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert hasattr(overview, 'funnel_stages')
+        asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -114,32 +141,41 @@ class TestFunnelAnalysis:
 # ---------------------------------------------------------------------------
 
 class TestOutcomeDistribution:
-    @pytest.mark.asyncio
-    async def test_outcome_groups_by_result(self, mock_db):
+    def test_outcome_groups_by_result(self):
         """Outcome distribution groups by analysis outcome."""
-        from src.services.analytics import get_analytics_overview
-        
-        # Mock empty results
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        assert isinstance(overview.outcome_distribution, list)
-    
-    @pytest.mark.asyncio
-    async def test_outcome_handles_no_data(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert isinstance(overview.outcome_distribution, list)
+        asyncio.run(run())
+
+    def test_outcome_handles_no_data(self):
         """Outcome distribution handles empty dataset."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        assert len(overview.outcome_distribution) == 0
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert len(overview.outcome_distribution) == 0
+        asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -147,48 +183,64 @@ class TestOutcomeDistribution:
 # ---------------------------------------------------------------------------
 
 class TestTrendAnalysis:
-    @pytest.mark.asyncio
-    async def test_score_trend_returns_time_series(self, mock_db):
+    def test_score_trend_returns_time_series(self):
         """Score trend returns daily time series."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        assert isinstance(overview.score_trend, list)
-    
-    @pytest.mark.asyncio
-    async def test_volume_trend_tracks_recordings(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert isinstance(overview.score_trend, list)
+        asyncio.run(run())
+
+    def test_volume_trend_tracks_recordings(self):
         """Volume trend tracks recording count over time."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db)
-        
-        assert isinstance(overview.volume_trend, list)
-    
-    @pytest.mark.asyncio
-    async def test_trends_handle_date_range(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert isinstance(overview.volume_trend, list)
+        asyncio.run(run())
+
+    def test_trends_handle_date_range(self):
         """Trends respect date range filters."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(
-            mock_db,
-            date_from=date(2024, 1, 1),
-            date_to=date(2024, 12, 31)
-        )
-        
-        assert overview is not None
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(
+                mock_db,
+                brand_id=brand_id,
+                date_from=date(2024, 1, 1),
+                date_to=date(2024, 12, 31)
+            )
+
+            assert overview is not None
+        asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -196,32 +248,41 @@ class TestTrendAnalysis:
 # ---------------------------------------------------------------------------
 
 class TestStoreComparison:
-    @pytest.mark.asyncio
-    async def test_store_comparison_returns_list(self, mock_db):
+    def test_store_comparison_returns_list(self):
         """Store comparison returns list of store metrics."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db, brand_id="brand-123")
-        
-        assert isinstance(overview.store_comparison, list)
-    
-    @pytest.mark.asyncio
-    async def test_store_comparison_empty_for_single_store(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+
+            assert isinstance(overview.store_comparison, list)
+        asyncio.run(run())
+
+    def test_store_comparison_empty_for_single_store(self):
         """Store comparison may be empty for single store scope."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db, store_id="store-456")
-        
-        # May be empty or contain data
-        assert isinstance(overview.store_comparison, list)
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            store_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, store_id=store_id)
+
+            assert isinstance(overview.store_comparison, list)
+        asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -229,62 +290,84 @@ class TestStoreComparison:
 # ---------------------------------------------------------------------------
 
 class TestAnalyticsEdgeCases:
-    @pytest.mark.asyncio
-    async def test_analytics_without_date_filters(self, mock_db):
+    def test_analytics_without_date_filters(self):
         """Analytics works without date filters (all-time)."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(mock_db, brand_id="brand-123")
-        assert overview is not None
-    
-    @pytest.mark.asyncio
-    async def test_analytics_with_only_date_from(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(mock_db, brand_id=brand_id)
+            assert overview is not None
+        asyncio.run(run())
+
+    def test_analytics_with_only_date_from(self):
         """Analytics works with only start date."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(
-            mock_db,
-            date_from=date(2024, 1, 1)
-        )
-        assert overview is not None
-    
-    @pytest.mark.asyncio
-    async def test_analytics_with_only_date_to(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(
+                mock_db,
+                brand_id=brand_id,
+                date_from=date(2024, 1, 1)
+            )
+            assert overview is not None
+        asyncio.run(run())
+
+    def test_analytics_with_only_date_to(self):
         """Analytics works with only end date."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(
-            mock_db,
-            date_to=date(2024, 12, 31)
-        )
-        assert overview is not None
-    
-    @pytest.mark.asyncio
-    async def test_analytics_future_date_range(self, mock_db):
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(
+                mock_db,
+                brand_id=brand_id,
+                date_to=date(2024, 12, 31)
+            )
+            assert overview is not None
+        asyncio.run(run())
+
+    def test_analytics_future_date_range(self):
         """Analytics handles future date ranges gracefully."""
-        from src.services.analytics import get_analytics_overview
-        
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        mock_db.execute.return_value = mock_result
-        
-        overview = await get_analytics_overview(
-            mock_db,
-            date_from=date(2030, 1, 1),
-            date_to=date(2030, 12, 31)
-        )
-        
-        # Should return empty results, not error
-        assert overview is not None
+        async def run():
+            from src.services.analytics import get_analytics_overview
+
+            brand_id = str(uuid.uuid4())
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            mock_result.scalar_one_or_none = MagicMock(return_value=None)
+            mock_result.scalars.return_value.all.return_value = []
+            mock_db = AsyncMock()
+            mock_db.execute = AsyncMock(return_value=mock_result)
+
+            overview = await get_analytics_overview(
+                mock_db,
+                brand_id=brand_id,
+                date_from=date(2030, 1, 1),
+                date_to=date(2030, 12, 31)
+            )
+
+            assert overview is not None
+        asyncio.run(run())

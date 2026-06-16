@@ -77,6 +77,10 @@ def build_conversation_turns(recording_id: str) -> str:
     Merges word-level transcripts into speaker turns based on:
     - Speaker continuity (same speaker = same turn)
     - Gap detection (gap > 1s = new turn)
+    
+    Speaker labels come from STT diarization (Deepgram built-in diarizer
+    provides \"SPEAKER_0\", \"SPEAKER_1\", etc.) or fall back to \"UNKNOWN\"
+    if no diarization was performed.
 
     Returns:
         recording_id for the next pipeline stage
@@ -95,6 +99,15 @@ def build_conversation_turns(recording_id: str) -> str:
             fail_and_halt(recording_id, "No word transcripts")
 
         logger.info("[%s] Building turns from %d words", recording_id, len(word_transcripts))
+        
+        # Log if diarization was skipped (all speakers will be UNKNOWN)
+        from src.config import settings
+        if not settings.enable_diarization:
+            logger.info(
+                "[%s] Pyannote diarization disabled — using STT-level speaker labels "
+                "from Deepgram built-in diarizer",
+                recording_id,
+            )
 
         # Build conversation turns
         turns = _build_turns_ai(word_transcripts)

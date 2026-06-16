@@ -7,6 +7,7 @@ from src.config import settings
 from src.models.conversation import Conversation
 from src.models.recording import RecordingStatus
 from src.models.transcript import TranscriptSegment
+from src.workers.pipeline_control import PipelineHalted
 from src.workers.preprocessing import (
     _get_recording_sync,
     _update_recording_status_sync,
@@ -135,8 +136,24 @@ def segment_conversations(recording_id: str) -> str:
 
         if not conversations:
             logger.warning("[%s] No conversations detected after segmentation", recording_id)
-            # Store empty — mark as completed with 0 conversations
-            conversations = []
+            # Halt pipeline — no conversations means segmentation failed.
+            # This ensures the recording shows as FAILED in the ops view
+            # with the ability to retry from the segmentation stage.
+            _update_recording_status_sync(
+                recording_id,
+                RecordingStatus.FAILED,
+                "Segmentation produced 0 conversations. Check transcript quality or retry segmentation.",
+            )
+            from src.services.pipeline_state import mark_stage_failed_sync
+            mark_stage_failed_sync(
+                recording_id,
+                "segmentation",
+                "Segmentation produced 0 conversations. Check transcript quality or retry segmentation.",
+            )
+            raise PipelineHalted(
+                f"No conversations detected for recording {recording_id}. "
+                "Segmentation could not identify conversation boundaries."
+            )
 
         # Store conversations in DB
         _store_conversations_sync(recording_id, conversations)
@@ -152,6 +169,11 @@ def segment_conversations(recording_id: str) -> str:
         mark_stage_complete_sync(recording_id, "segmentation")
 
         return recording_id
+
+    except PipelineHalted:
+        # PipelineHalted already marked recording FAILED and stage failed.
+        # Re-raise so the pipeline orchestrator knows to stop.
+        raise
 
     except Exception as exc:
         logger.error("[%s] Segmentation failed: %s", recording_id, exc, exc_info=True)

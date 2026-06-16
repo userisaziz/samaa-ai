@@ -22,7 +22,7 @@ STAGE_ORDER = [
     "turns",
     "roles",
     "segmentation",
-    "extract-audio",
+    "stitch",
     "analyze",
     "scoring",
 ]
@@ -270,3 +270,30 @@ def is_stage_completed_sync(recording_id: str, stage_name: str) -> bool:
             raise ValueError(f"Recording {recording_id} not found")
         
         return recording.is_stage_completed(stage_name)
+
+
+def get_recording_and_state_sync(recording_id: str) -> dict | None:
+    """Get recording data and state in single optimized query.
+    
+    Consolidates multiple DB calls into one to reduce load.
+    Returns dict with 'id', 'file_url', 'format', 'status', 'pipeline_state' keys.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from src.config import settings
+    
+    engine = create_engine(settings.database_url_sync)
+    SessionLocal = sessionmaker(bind=engine)
+    
+    with SessionLocal() as session:
+        recording = session.query(Recording).filter(Recording.id == recording_id).first()
+        if not recording:
+            return None
+        
+        return {
+            "id": str(recording.id),
+            "file_url": recording.file_url,
+            "format": recording.format,
+            "status": recording.status.value if recording.status else None,
+            "pipeline_state": recording.get_pipeline_state()
+        }

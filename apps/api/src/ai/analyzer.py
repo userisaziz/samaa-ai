@@ -38,6 +38,13 @@ You MUST respond with valid JSON matching this exact schema:
     "outcome": {"type": "string", "enum": ["SALE_MADE", "LOST", "FOLLOW_UP_NEEDED"]},
     "loss_reason": "If outcome is LOST, a concise explanation of why the sale was lost based on the conversation. null if outcome is not LOST",
     "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
+    "scores": {
+        "greeting_score": {"type": "integer", "minimum": 0, "maximum": 100, "description": "How well the salesperson greeted and welcomed the customer"},
+        "discovery_score": {"type": "integer", "minimum": 0, "maximum": 100, "description": "How well the salesperson discovered customer needs through questions"},
+        "product_knowledge_score": {"type": "integer", "minimum": 0, "maximum": 100, "description": "Salesperson's product knowledge and feature explanation quality"},
+        "objection_handling_score": {"type": "integer", "minimum": 0, "maximum": 100, "description": "How effectively the salesperson handled customer objections"},
+        "closing_score": {"type": "integer", "minimum": 0, "maximum": 100, "description": "How well the salesperson attempted to close the sale"}
+    },
     "summary": "One paragraph summary of the conversation",
     "coaching_notes": "Specific coaching feedback for the salesperson based on their performance. Reference actual conversation moments and suggest SOP-compliant alternatives where applicable."
 }
@@ -52,6 +59,7 @@ Rules:
 - "closing_attempt" is true if the salesperson attempted to close the sale
 - "loss_reason" should only be filled when outcome is LOST, otherwise null
 - "customer_expectation" captures what the customer is looking for or expects from the purchase
+- "scores" must include all 5 score dimensions (greeting_score, discovery_score, product_knowledge_score, objection_handling_score, closing_score), each 0-100
 - "coaching_notes" should be constructive and specific, referencing actual conversation moments and suggesting best-practice SOP responses
 - If the conversation is too short or unclear, set confidence below 85
 - If there are no products, competitors, or objections, you MUST return an empty array [], never null

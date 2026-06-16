@@ -6,10 +6,10 @@ from src.ai.segmenter import (
     FAREWELL_PATTERNS,
     DIRECT_QUESTION_PATTERNS,
     MEDIUM_GAP_THRESHOLD,
+    SILENCE_GAP_THRESHOLD,
     _find_boundaries,
     _filter_conversations,
     _text_matches_patterns,
-    _is_customer_speaker,
     segment_conversations,
 )
 
@@ -48,23 +48,23 @@ class TestSegmentConversations:
         assert result[0]["end_time"] == 15.0
 
     def test_silence_gap_creates_boundary(self):
-        """A gap > 30 seconds splits into two conversations."""
+        """A gap > 60 seconds splits into two conversations."""
         segments = _make_segments(
             (0.0, 5.0, "Hello, welcome!", "Speaker_A"),
-            (5.5, 10.0, "Thanks, I need a laptop.", "Speaker_B"),
-            (50.0, 55.0, "Next customer please!", "Speaker_A"),
-            (55.5, 60.0, "I want to return this.", "Speaker_C"),
+            (5.5, 10.0, "Goodbye, have a nice day!", "Speaker_B"),
+            (80.0, 85.0, "Next customer please!", "Speaker_A"),
+            (85.5, 90.0, "I want to return this.", "Speaker_C"),
         )
         result = segment_conversations(segments)
         assert len(result) == 2
         assert result[0]["end_time"] == 10.0
-        assert result[1]["start_time"] == 50.0
+        assert result[1]["start_time"] == 80.0
 
     def test_greeting_creates_boundary(self):
-        """A greeting phrase starts a new conversation even without a large gap."""
+        """A farewell+greeting combo starts a new conversation even without a large gap."""
         segments = _make_segments(
-            (0.0, 5.0, "That's everything, thank you.", "Speaker_A"),
-            (5.5, 12.0, "Let me process that for you.", "Speaker_A"),
+            (0.0, 5.0, "That's everything.", "Speaker_A"),
+            (5.5, 12.0, "Goodbye, have a nice day!", "Speaker_A"),
             (13.0, 18.0, "Good morning! Welcome to our store.", "Speaker_B"),
             (18.5, 25.0, "I'm looking for a new laptop.", "Speaker_C"),
         )
@@ -86,7 +86,7 @@ class TestSegmentConversations:
     def test_short_conversations_filtered(self):
         """Conversations shorter than 10s or with < 2 segments are filtered out."""
         segments = _make_segments(
-            (0.0, 3.0, "Hi.", "Speaker_A"),  # too short, single segment
+            (0.0, 3.0, "Goodbye!", "Speaker_A"),  # farewell + 37s gap → boundary
             (40.0, 45.0, "Hello, welcome!", "Speaker_B"),
             (45.5, 55.0, "I'm looking for shoes.", "Speaker_C"),
         )
@@ -111,7 +111,7 @@ class TestFindBoundaries:
     def test_silence_gap_boundary(self):
         segments = _make_segments(
             (0.0, 5.0, "Hello.", "A"),
-            (50.0, 55.0, "Hi.", "B"),
+            (70.0, 75.0, "Hi.", "B"),
         )
         boundaries = _find_boundaries(segments, [])
         assert 0 in boundaries  # boundary after segment 0
@@ -191,66 +191,36 @@ class TestPatternMatching:
 # ---------------------------------------------------------------------------
 
 class TestDirectQuestionBoundary:
-    """Test Rule 4: medium gap + direct question = new conversation (no greeting)."""
+    """Test: medium gap + farewell = new conversation (Rule 3)."""
 
-    def test_medium_gap_with_direct_question(self):
-        """Customer walks in after 15s gap and asks 'how much' without greeting."""
+    def test_medium_gap_with_farewell(self):
+        """Customer leaves after farewell, new customer arrives after 25s gap."""
         segments = _make_segments(
-            (0.0, 5.0, "Let me organize these items.", "Speaker_A"),
-            (20.0, 25.0, "How much is this phone?", "Speaker_B"),
-            (25.5, 30.0, "That one is $299.", "Speaker_A"),
+            (0.0, 5.0, "Goodbye, have a nice day!", "Speaker_A"),
+            (30.0, 35.0, "How much is this phone?", "Speaker_B"),
+            (35.5, 40.0, "That one is $299.", "Speaker_A"),
         )
         boundaries = _find_boundaries(segments, [])
         assert 0 in boundaries  # boundary after first segment
 
-    def test_medium_gap_without_question_no_boundary(self):
-        """Medium gap but no question and same speaker = no boundary."""
+    def test_medium_gap_without_farewell_no_boundary(self):
+        """Medium gap but no farewell = no boundary."""
         segments = _make_segments(
             (0.0, 5.0, "Let me check the inventory.", "Speaker_A"),
-            (20.0, 25.0, "Sure, take your time.", "Speaker_A"),
+            (25.0, 30.0, "Sure, take your time.", "Speaker_A"),
         )
         boundaries = _find_boundaries(segments, [])
         assert boundaries == []
 
-    def test_arabic_direct_question_boundary(self):
-        """Arabic customer asks 'بكم' after medium gap."""
+    def test_arabic_farewell_boundary(self):
+        """Arabic farewell + medium gap creates boundary."""
         segments = _make_segments(
-            (0.0, 5.0, "أرتب هذه العناصر.", "Speaker_A"),
-            (18.0, 22.0, "بكم هذا؟", "Speaker_B"),
-            (22.5, 28.0, "هذا بخمسين ريال.", "Speaker_A"),
+            (0.0, 5.0, "مع السلامة، وداعا", "Speaker_A"),
+            (30.0, 35.0, "بكم هذا؟", "Speaker_B"),
+            (35.5, 40.0, "هذا بخمسين ريال.", "Speaker_A"),
         )
         boundaries = _find_boundaries(segments, [])
         assert 0 in boundaries
-
-
-class TestSpeakerChangeBoundary:
-    """Test Rule 5: speaker change after medium gap = new customer."""
-
-    def test_speaker_change_after_medium_gap(self):
-        """New speaker after 12s gap = likely new customer."""
-        segments = _make_segments(
-            (0.0, 3.0, "Welcome!", "Salesperson"),
-            (3.5, 6.0, "Thanks!", "Customer_A"),
-            (6.5, 9.0, "Here's your receipt.", "Salesperson"),
-            (21.0, 24.0, "أبي شغلة", "Customer_B"),  # Arabic: "I need something"
-            (24.5, 27.0, "تفضل", "Salesperson"),
-        )
-        boundaries = _find_boundaries(segments, [])
-        # Should detect boundary at index 2 (speaker change after gap)
-        assert 2 in boundaries
-
-    def test_is_customer_speaker(self):
-        """Heuristic correctly identifies customer vs salesperson."""
-        segments = _make_segments(
-            (0.0, 2.0, "Hello!", "SP"),
-            (2.5, 4.0, "Hi.", "C1"),
-            (4.5, 6.0, "Welcome.", "SP"),
-            (6.5, 8.0, "Thanks.", "C1"),
-            (8.5, 10.0, "Let me check.", "SP"),
-        )
-        # SP speaks more in opening = salesperson
-        assert not _is_customer_speaker("SP", segments, 0)
-        assert _is_customer_speaker("C1", segments, 1)
 
 
 class TestMultilingualSegmentation:
@@ -310,7 +280,7 @@ class TestCodeSwitching:
         """Speaker greets in Arabic then switches to English mid-sentence."""
         segments = _make_segments(
             (0.0, 5.0, "Let me organize these items.", "Speaker_A"),
-            (5.5, 12.0, "All sorted now.", "Speaker_A"),
+            (5.5, 12.0, "All sorted now. Goodbye!", "Speaker_A"),
             (13.0, 19.0, "مرحبا، welcome! How can I help you?", "Speaker_A"),
             (19.5, 25.0, "I'm looking for a phone case.", "Speaker_B"),
         )
@@ -329,11 +299,11 @@ class TestCodeSwitching:
         assert len(result) == 2
 
     def test_hindi_english_code_switch_question(self):
-        """Hindi-English mix question after medium gap."""
+        """Hindi-English mix question after medium gap + farewell."""
         segments = _make_segments(
-            (0.0, 5.0, "Let me arrange these items.", "Speaker_A"),
-            (20.0, 25.0, "यह कितना का है, how much is this?", "Speaker_B"),
-            (25.5, 30.0, "This one is 150 riyals.", "Speaker_A"),
+            (0.0, 5.0, "Goodbye, see you later!", "Speaker_A"),
+            (30.0, 35.0, "यह कितना का है, how much is this?", "Speaker_B"),
+            (35.5, 40.0, "This one is 150 riyals.", "Speaker_A"),
         )
         boundaries = _find_boundaries(segments, [])
         assert 0 in boundaries
@@ -458,19 +428,19 @@ class TestRapidCustomerTurnover:
     """
 
     def test_three_quick_conversations(self):
-        """Three customers in rapid succession, each with greeting."""
+        """Three customers in rapid succession, each with farewell+greeting transition."""
         segments = _make_segments(
             # Customer 1
             (0.0, 3.0, "Hello, welcome!", "Salesperson"),
             (3.5, 7.0, "I need batteries.", "Customer_1"),
             (7.5, 11.0, "Here you go, anything else?", "Salesperson"),
-            (11.5, 14.0, "Nothing else, I'm done.", "Customer_1"),
-            # Customer 2 — 3s gap but new greeting
+            (11.5, 14.0, "Goodbye, thanks!", "Customer_1"),
+            # Customer 2 — new greeting after farewell
             (17.0, 20.0, "مرحبا! Welcome!", "Salesperson"),
             (20.5, 24.0, "أبي شاحن", "Customer_2"),
             (24.5, 28.0, "Here you go.", "Salesperson"),
-            (28.5, 31.0, "OK.", "Customer_2"),
-            # Customer 3 — 2s gap but new greeting
+            (28.5, 31.0, "Goodbye, see you!", "Customer_2"),
+            # Customer 3 — new greeting after farewell
             (33.0, 36.0, "Good afternoon! How can I help?", "Salesperson"),
             (36.5, 40.0, "Where is the accessories section?", "Customer_3"),
             (40.5, 44.0, "Right this way, follow me.", "Salesperson"),

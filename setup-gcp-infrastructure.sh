@@ -1,5 +1,5 @@
 #!/bin/bash
-# GCP Infrastructure Setup Script for SAMAA AI Pipeline
+# GCP Infrastructure Setup Script for CXSAMAA AI Pipeline
 # Creates all required GCP resources for Cloud Run deployment
 
 set -e
@@ -7,12 +7,12 @@ set -e
 # Configuration
 PROJECT_ID="${GCP_PROJECT_ID:?Error: GCP_PROJECT_ID environment variable is required}"
 REGION="${GCP_REGION:-us-central1}"
-SERVICE_ACCOUNT_EMAIL="${GCP_WORKER_SA_EMAIL:-samaa-worker-sa@${PROJECT_ID}.iam.gserviceaccount.com}"
+SERVICE_ACCOUNT_EMAIL="${GCP_WORKER_SA_EMAIL:-cxsamaa-worker-sa@${PROJECT_ID}.iam.gserviceaccount.com}"
 CLOUD_TASKS_QUEUE="pipeline-queue"
 DOMAIN="${DOMAIN:-cxsamaa.store}"
 
 echo "=========================================="
-echo "SAMAA AI - GCP Infrastructure Setup"
+echo "CXSAMAA AI - GCP Infrastructure Setup"
 echo "=========================================="
 echo "Project ID: ${PROJECT_ID}"
 echo "Region: ${REGION}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================
-# SAMAA — Production Deploy to Google Cloud Run
+# CXSAMAA — Production Deploy to Google Cloud Run
 # ============================================
 # Domain: cxsamaa.store
 # Stack:  Cloud SQL + Upstash Redis + R2
@@ -23,7 +23,7 @@ TAG="${TAG:-latest}"
 DOMAIN="${DOMAIN:-cxsamaa.store}"
 
 echo -e "${BLUE}╔══════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   SAMAA Cloud Run Deploy             ║${NC}"
+echo -e "${BLUE}║   CXSAMAA Cloud Run Deploy            ║${NC}"
 echo -e "${BLUE}║   Domain: ${DOMAIN}             ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════╝${NC}"
 echo ""
@@ -81,8 +81,8 @@ else
 fi
 
 # Check if service account exists
-if gcloud iam service-accounts describe samaa-worker-sa@${GCP_PROJECT}.iam.gserviceaccount.com &>/dev/null; then
-    echo -e "${GREEN}  ✓ Service Account: samaa-worker-sa exists${NC}"
+if gcloud iam service-accounts describe cxsamaa-worker-sa@${GCP_PROJECT}.iam.gserviceaccount.com &>/dev/null; then
+    echo -e "${GREEN}  ✓ Service Account: cxsamaa-worker-sa exists${NC}"
 else
     echo -e "${YELLOW}  ⚠ Service Account not found. Run setup-gcp-infrastructure.sh first${NC}"
     exit 1
@@ -93,8 +93,8 @@ echo ""
 # --- Step 4: Run database migrations ---
 echo -e "${YELLOW}[4/8] Running database migrations...${NC}"
 
-gcloud run jobs deploy samaa-migrations \
-  --image="gcr.io/${GCP_PROJECT}/samaa-api:${TAG}" \
+gcloud run jobs deploy cxsamaa-migrations \
+  --image="gcr.io/${GCP_PROJECT}/cxsamaa-api:${TAG}" \
   --region="${GCP_REGION}" \
   --args="alembic","upgrade","head" \
   --set-env-vars="APP_ENV=production" \
@@ -107,8 +107,8 @@ echo ""
 # --- Step 5: Deploy Worker (Cloud Run Service) ---
 echo -e "${YELLOW}[5/8] Deploying Worker service...${NC}"
 
-gcloud run deploy samaa-worker \
-  --image="gcr.io/${GCP_PROJECT}/samaa-worker:${TAG}" \
+gcloud run deploy cxsamaa-worker \
+  --image="gcr.io/${GCP_PROJECT}/cxsamaa-worker:${TAG}" \
   --region="${GCP_REGION}" \
   --platform=managed \
   --port=8000 \
@@ -122,7 +122,7 @@ gcloud run deploy samaa-worker \
   --env-vars-file=apps/api/.env.prod \
   --no-allow-unauthenticated
 
-WORKER_URL=$(gcloud run services describe samaa-worker --region="${GCP_REGION}" --format="value(status.url)")
+WORKER_URL=$(gcloud run services describe cxsamaa-worker --region="${GCP_REGION}" --format="value(status.url)")
 echo -e "${GREEN}  ✓ Worker deployed: ${WORKER_URL}${NC}"
 echo ""
 
@@ -132,8 +132,8 @@ echo -e "${YELLOW}[6/8] Deploying API service...${NC}"
 # Update .env.prod with worker URL before deploying API
 sed -i.bak "s|WORKER_URL=.*|WORKER_URL=${WORKER_URL}|g" apps/api/.env.prod
 
-gcloud run deploy samaa-api \
-  --image="gcr.io/${GCP_PROJECT}/samaa-api:${TAG}" \
+gcloud run deploy cxsamaa-api \
+  --image="gcr.io/${GCP_PROJECT}/cxsamaa-api:${TAG}" \
   --region="${GCP_REGION}" \
   --platform=managed \
   --port=8000 \

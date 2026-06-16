@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     )
 
     # Database
-    database_url: str = "postgresql+asyncpg://samaa:samaa_dev_password@localhost:5432/samaa"
-    database_url_sync: str = "postgresql://samaa:samaa_dev_password@localhost:5432/samaa"
+    database_url: str = "postgresql+asyncpg://cxsamaa:cxsamaa_dev_password@localhost:5432/cxsamaa"
+    database_url_sync: str = "postgresql://cxsamaa:cxsamaa_dev_password@localhost:5432/cxsamaa"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     r2_account_id: str = ""
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""
-    r2_bucket: str = "samaa-audio"
+    r2_bucket: str = "cxsamaa-audio"
     r2_public_url: str = ""  # Optional: public bucket URL for direct access
 
     # NVIDIA NIM
@@ -43,9 +43,9 @@ class Settings(BaseSettings):
     nvidia_embedding_model: str = "nvidia/llama-3.2-nv-embedqa-1b-v2"
     nvidia_timeout: int = 300  # 5 minutes per API call
 
-    # STT Provider (NVIDIA Riva with Deepgram fallback)
-    stt_provider: str = "riva"  # STT provider (default: "riva")
-    stt_fallback_provider: str = "deepgram"  # Fallback STT when primary fails (default: "deepgram")
+    # STT Provider (Deepgram with built-in diarization)
+    stt_provider: str = "deepgram"  # STT provider (default: "deepgram" — includes speaker diarization)
+    stt_fallback_provider: str = "riva"  # Fallback STT when Deepgram fails (default: "riva")
 
     # Deepgram STT (fallback provider)
     deepgram_api_key: str = ""
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     deepseek_timeout: int = 120
 
     # Pyannote.audio (Local Diarization)
+    enable_diarization: bool = False  # Disabled pyannote; using Deepgram built-in diarization instead
     diarization_use_pyannote: bool = True  # Enable pyannote as primary diarizer
     pyannote_hf_token: str = ""  # HuggingFace token for gated pyannote models
     pyannote_model_name: str = "pyannote/speaker-diarization-3.1"
@@ -77,9 +78,13 @@ class Settings(BaseSettings):
 
     # Audio Chunking for Long Recordings
     # 10 min of 16 kHz mono WAV ≈ 19.2 MB (well under typical API limits)
-    audio_chunk_duration_minutes: int = 10  # 10-minute chunks
-    audio_chunk_overlap_seconds: int = 30  # 30-second overlap between chunks
+    audio_chunk_duration_minutes: int = 10  # 10-minute chunks (max)
+    audio_chunk_overlap_seconds: int = 30  # 30-second overlap between chunks (only at forced splits)
     max_audio_chunk_bytes: int = 25 * 1024 * 1024  # 25MB max per chunk
+
+    # VAD-driven chunking (replaces time-based chunking with speech-aware boundaries)
+    vad_driven_chunking: bool = True  # Use VAD speech segments as primary split points
+    vad_chunk_min_silence_for_boundary: float = 2.0  # Minimum silence (seconds) between VAD segments to create a chunk boundary
 
     # GCP Cloud Run & Cloud Tasks
     gcp_project: str = ""  # Set to your GCP project ID
@@ -92,6 +97,11 @@ class Settings(BaseSettings):
     # Celery (Local Development Only)
     celery_broker_url: str = "redis://localhost:6379/0"  # Redis broker for Celery
     celery_result_backend: str = "redis://localhost:6379/1"  # Redis backend for results
+
+    # Pipeline Mode
+    # "full"       = upload + auto-enqueue pipeline (dev/local with Celery)
+    # "cloud-only" = upload + dashboard only, no pipeline dispatch (GCP Cloud Run)
+    pipeline_mode: str = "full"
 
     # App
     app_env: str = "development"

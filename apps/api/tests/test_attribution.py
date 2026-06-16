@@ -96,17 +96,17 @@ class TestWordAttribution:
         """Test rapid speaker changes in conversation."""
         words = [
             {"word": "Hi", "start": 0.1, "end": 0.5, "confidence": 0.98},
-            {"word": "Hello", "start": 1.0, "end": 1.5, "confidence": 0.95},
-            {"word": "How", "start": 2.0, "end": 2.3, "confidence": 0.92},
-            {"word": "are", "start": 2.4, "end": 2.6, "confidence": 0.91},
+            {"word": "Hello", "start": 2.0, "end": 2.5, "confidence": 0.95},
+            {"word": "How", "start": 2.6, "end": 2.8, "confidence": 0.92},
+            {"word": "are", "start": 2.9, "end": 3.0, "confidence": 0.91},
         ]
         segments = [
             {"start": 0.0, "end": 1.5, "speaker": "SPEAKER_00"},
-            {"start": 1.5, "end": 3.0, "speaker": "SPEAKER_01"},
+            {"start": 1.5, "end": 4.0, "speaker": "SPEAKER_01"},
         ]
         result = assign_speaker_to_word(words, segments)
         assert len(result) == 4
-        assert result[0]["speaker"] == "Speaker_A"  # 0.3 midpoint
-        assert result[1]["speaker"] == "Speaker_B"  # 1.25 midpoint
-        assert result[2]["speaker"] == "Speaker_B"  # 2.15 midpoint
-        assert result[3]["speaker"] == "Speaker_B"  # 2.5 midpoint
+        assert result[0]["speaker"] == "Speaker_A"  # 0.3 midpoint → SPEAKER_00
+        assert result[1]["speaker"] == "Speaker_B"  # 2.25 midpoint → SPEAKER_01
+        assert result[2]["speaker"] == "Speaker_B"  # 2.7 midpoint → SPEAKER_01
+        assert result[3]["speaker"] == "Speaker_B"  # 2.95 midpoint → SPEAKER_01

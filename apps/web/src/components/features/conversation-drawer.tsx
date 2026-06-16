@@ -61,8 +61,8 @@ export function ConversationDrawer({ conversation, open, onOpenChange, salespers
   // Filter segments within this conversation's time range
   const convSegments = transcriptSegments?.filter(
     (seg) =>
-      seg.start_time >= (conversation?.start_time ?? 0) &&
-      seg.end_time <= (conversation?.end_time ?? Infinity),
+      seg.start_time < (conversation?.end_time ?? Infinity) + 1.0 &&  // overlap with tolerance
+      seg.end_time > (conversation?.start_time ?? 0) - 1.0,
   ) ?? [];
 
   const outcomeConfig = analysis?.outcome ? OUTCOME_CONFIG[analysis.outcome] : null;

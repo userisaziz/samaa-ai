@@ -152,7 +152,7 @@ export default function BrandDashboardPage() {
           description="Across all stores"
         />
         <KPICard
-          title="Conversations"
+          title="Interactions"
           value={totalConversations}
           icon={Mic}
           description="Total analyzed"
@@ -167,7 +167,7 @@ export default function BrandDashboardPage() {
 
       {/* Analytics Charts */}
       <div className="space-y-4">
-        {/* Row 1: Outcome Donut + Conversion Gauge */}
+        {/* Row 1: Outcome Donut + Deal Closure Gauge */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <OutcomeDonut data={analytics?.outcome_distribution ?? []} />
           <ConversionGauge
@@ -214,7 +214,7 @@ export default function BrandDashboardPage() {
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Location</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Salespeople</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Conversations</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Interactions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

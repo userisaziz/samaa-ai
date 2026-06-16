@@ -1,0 +1,179 @@
+# deploy-gcp.yml — Deploy 3 services to GCP Cloud Run
+#
+# Triggers: push to main
+# Auth:     GCP service account key (GCP_SA_KEY secret)
+# Build:    Cloud Build via cloudbuild.yaml
+# Services: samaa-api (FastAPI) + samaa-web (Next.js) + samaa-landing (Vite SPA)
+name: Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'apps/landing/**'
+      - 'packages/shared/**'
+      - 'cloudbuild.yaml'
+      - '.github/workflows/deploy-gcp.yml'
+
+concurrency:
+  group: gcp-deploy
+  cancel-in-progress: false
+
+env:
+  REGION: us-central1
+
+jobs:
+  # ── Pre-flight ─────────────────────────────────────────────────────────────
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pre-flight checks
+        run: |
+          echo "=== Pre-flight ==="
+          echo "  Branch:  ${{ github.ref_name }}"
+          echo "  Commit:  ${{ github.sha }}"
+          echo "  Author:  ${{ github.actor }}"
+          for f in apps/api/pyproject.toml apps/web/package.json apps/landing/package.json cloudbuild.yaml; do
+            [ -f "$f" ] || { echo "::error::Missing: $f"; exit 1; }
+          done
+          echo "  All required files present"
+
+  # ── Deploy ──────────────────────────────────────────────────────────────────
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Authenticate to GCP ──────────────────────────────────────────────────
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      # ── Generate env files from secrets ────────────────────────────────────────
+      - name: Generate .env.prod files from secrets
+        run: |
+          # API env (cloud-only mode)
+          cat > apps/api/.env.prod <<ENVEOF
+          DATABASE_URL=${{ secrets.NEON_DATABASE_URL }}
+          DATABASE_URL_SYNC=${{ secrets.NEON_DATABASE_URL_SYNC }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_ALGORITHM=HS256
+          JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
+          JWT_REFRESH_TOKEN_EXPIRE_DAYS=30
+          STORAGE_BACKEND=r2
+          R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET=${{ secrets.R2_BUCKET }}
+          PIPELINE_MODE=cloud-only
+          APP_ENV=production
+          APP_DEBUG=false
+          APP_HOST=0.0.0.0
+          APP_PORT=8000
+          CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+          ENVEOF
+
+          # Web env
+          cat > apps/web/.env.prod <<ENVEOF
+          NEXT_PUBLIC_API_URL=/api/v1
+          API_BASE_URL=${{ secrets.API_BASE_URL }}
+          ENVEOF
+
+          # Strip leading whitespace from heredoc indentation
+          sed -i 's/^[[:space:]]*//' apps/api/.env.prod
+          sed -i 's/^[[:space:]]*//' apps/web/.env.prod
+
+          echo "  Generated apps/api/.env.prod and apps/web/.env.prod"
+
+      # ── Submit to Cloud Build ────────────────────────────────────────────────
+      - name: Submit Cloud Build
+        run: |
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --substitutions=_TAG=${{ github.sha }} \
+            --timeout=1800
+
+      # ── Health checks ────────────────────────────────────────────────────────
+      - name: Health check — API
+        run: |
+          API_URL=$(gcloud run services describe samaa-api \
+            --region=${{ env.REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "  API URL: ${API_URL}"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/health")
+          if [ "${HTTP_CODE}" = "200" ]; then
+            echo "  API health: OK"
+          else
+            echo "::error::API health check failed (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+
+      - name: Health check — Web
+        run: |
+          WEB_URL=$(gcloud run services describe samaa-web \
+            --region=${{ env.REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "  Web URL: ${WEB_URL}"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${WEB_URL}")
+          if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "307" ]; then
+            echo "  Web health: OK"
+          else
+            echo "::warning::Web returned HTTP ${HTTP_CODE} (may redirect to login)"
+          fi
+
+      - name: Health check — Landing
+        run: |
+          LANDING_URL=$(gcloud run services describe samaa-landing \
+            --region=${{ env.REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "  Landing URL: ${LANDING_URL}"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${LANDING_URL}/healthz")
+          if [ "${HTTP_CODE}" = "200" ]; then
+            echo "  Landing health: OK"
+          else
+            echo "::error::Landing health check failed (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+
+      # ── Summary ──────────────────────────────────────────────────────────────
+      - name: Deploy summary
+        if: always()
+        run: |
+          echo "════════════════════════════════════════"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "  Deployment Successful"
+            echo "════════════════════════════════════════"
+            echo ""
+            echo "  Commit:  ${{ github.sha }}"
+            echo "  Author:  ${{ github.actor }}"
+          else
+            echo "  Deployment Failed"
+            echo "════════════════════════════════════════"
+            echo "  Commit: ${{ github.sha }}"
+          fi

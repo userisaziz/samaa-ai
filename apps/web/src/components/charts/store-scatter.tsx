@@ -31,10 +31,10 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
           Avg Score: <span className="font-mono text-ink">{item.avg_score?.toFixed(1) ?? "–"}</span>
         </p>
         <p className="text-xs text-steel">
-          Conversion: <span className="font-mono text-ink">{item.conversion_rate != null ? `${item.conversion_rate.toFixed(1)}%` : "–"}</span>
+          Deal Closure: <span className="font-mono text-ink">{item.conversion_rate != null ? `${item.conversion_rate.toFixed(1)}%` : "–"}</span>
         </p>
         <p className="text-xs text-steel">
-          Conversations: <span className="font-mono text-ink">{item.total_conversations}</span>
+          Interactions: <span className="font-mono text-ink">{item.total_conversations}</span>
         </p>
       </div>
     </div>
@@ -77,11 +77,11 @@ export function StoreScatter({ data, title = "Store Comparison" }: StoreScatterP
                 <YAxis
                   type="number"
                   dataKey="y"
-                  name="Conversion %"
+                  name="Deal Closure %"
                   domain={[0, 100]}
                   tickLine={false}
                   tick={{ fontSize: 11, fill: "var(--steel)" }}
-                  label={{ value: "Conversion %", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 11, fill: "var(--steel)" } }}
+                  label={{ value: "Deal Closure %", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 11, fill: "var(--steel)" } }}
                 />
                 <ZAxis type="number" dataKey="z" range={[80, 400]} />
                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3" }} />
