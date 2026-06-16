@@ -1,16 +1,16 @@
-# SAMAA AI Pipeline Architecture
+# CXSAMAA AI Pipeline Architecture
 
-> Complete end-to-end flow from audio upload to sales intelligence insights
+> Complete end-to-end flow from audio upload to customer experience insights
 
 ---
 
 ## Pipeline Overview
 
-The SAMAA AI pipeline processes retail sales recordings through **9 sequential stages**, orchestrated by Celery. The pipeline supports recordings up to **9+ hours** with memory-efficient streaming (peak RAM ~50MB) and parallel chunk processing for STT and diarization.
+The CXSAMAA AI pipeline processes customer interaction recordings through **9 sequential stages**, orchestrated by Celery. The pipeline supports recordings up to **9+ hours** with memory-efficient streaming (peak RAM ~50MB) and parallel chunk processing for STT and diarization.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SAMAA AI PIPELINE                            │
+│                    CXSAMAA AI PIPELINE                          │
 │                                                                 │
 │  Audio Upload → Preprocessing → STT → Diarization → Turns      │
 │       ↓                                                         │

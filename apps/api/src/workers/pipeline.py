@@ -218,7 +218,7 @@ def _enqueue_cloud_task(
     parent = client.queue_path(
         settings.gcp_project,
         settings.gcp_region,
-        "samaa-pipeline",
+        "cxsamaa-pipeline",
     )
 
     task = {

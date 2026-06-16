@@ -202,7 +202,7 @@ export default function CoachingPage() {
           {/* KPI Summary */}
           <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <KPICard
-              title="Total Conversations"
+              title="Total Interactions"
               value={performance?.total_conversations ?? 0}
               icon={Target}
               description="Analyzed interactions"

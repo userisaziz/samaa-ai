@@ -220,10 +220,10 @@ export default function SalespersonDetailPage() {
       {/* KPI Cards */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Total Conversations"
+          title="Total Interactions"
           value={performance?.total_conversations ?? 0}
           icon={MessageSquare}
-          description={performance?.total_conversations ? "Analyzed interactions" : "No conversations yet"}
+          description={performance?.total_conversations ? "Analyzed interactions" : "No interactions yet"}
         />
         <KPICard
           title="Avg Overall Score"

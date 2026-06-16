@@ -1,6 +1,6 @@
-# SAMAA — Oracle Cloud Free Tier Deployment Guide
+# CXSAMAA — Oracle Cloud Free Tier Deployment Guide
 
-Deploy the SAMAA AI pipeline to Oracle Cloud Always Free resources with zero cost.
+Deploy the CXSAMAA AI pipeline to Oracle Cloud Always Free resources with zero cost.
 
 ---
 

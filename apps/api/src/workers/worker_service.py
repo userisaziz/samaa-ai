@@ -11,7 +11,7 @@ from src.workers.pipeline_control import PipelineHalted
 
 logger = logging.getLogger(__name__)
 
-worker_app = FastAPI(title="SAMAA Pipeline Worker")
+worker_app = FastAPI(title="CXSAMAA Pipeline Worker")
 
 # Audience must match the Cloud Run service URL configured in Cloud Tasks
 CLOUD_TASKS_AUDIENCE = "https://your-worker-service-url.run.app"

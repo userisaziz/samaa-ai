@@ -7,7 +7,7 @@ import platform
 os.environ.setdefault('FSTAB_ENABLED', 'false')
 
 # Create Celery app
-app = Celery('samaa')
+app = Celery('cxsamaa')
 
 # Configure Celery from src.config.settings
 app.conf.update(

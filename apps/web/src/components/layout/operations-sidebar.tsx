@@ -55,7 +55,7 @@ export function OperationsSidebar() {
           <Headphones className="h-4.5 w-4.5 text-primary-foreground" />
         </div>
         <div className="flex flex-col">
-          <span className="text-lg font-semibold tracking-tight text-ink">SAMAA</span>
+          <span className="text-lg font-semibold tracking-tight text-ink">CXSAMAA</span>
           <span className="text-[10px] font-semibold uppercase tracking-widest text-steel">Operations</span>
         </div>
       </div>

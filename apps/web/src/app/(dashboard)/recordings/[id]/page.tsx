@@ -347,7 +347,7 @@ export default function RecordingDetailPage() {
           <>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               <KPICard
-                title="Conversations"
+                title="Interactions"
                 value={summary.total_conversations}
                 icon={MessageSquare}
               />

@@ -174,7 +174,7 @@ export default function StoreDashboardPage() {
           description="Average across salespeople"
         />
         <KPICard
-          title="Conversations"
+          title="Interactions"
           value={totalConversations}
           icon={Mic}
           description="Total analyzed"
@@ -246,7 +246,7 @@ export default function StoreDashboardPage() {
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Role</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Shift</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Conversations</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Interactions</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Deal Closure</TableHead>
                 </TableRow>
               </TableHeader>

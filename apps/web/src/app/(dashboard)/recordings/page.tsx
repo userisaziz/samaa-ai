@@ -220,7 +220,7 @@ export default function RecordingsPage() {
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Recorded</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Duration</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Status</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Conversations</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Interactions</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -99,6 +99,7 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
             existing.outcome = analysis.get("outcome")
             existing.loss_reason = analysis.get("loss_reason")
             existing.confidence = analysis.get("confidence")
+            existing.scores = analysis.get("scores")
             existing.summary = analysis.get("summary")
             existing.coaching_notes = analysis.get("coaching_notes")
         else:
@@ -115,6 +116,7 @@ def _store_analysis_sync(conversation_id: str, analysis: dict):
                 outcome=analysis.get("outcome"),
                 loss_reason=analysis.get("loss_reason"),
                 confidence=analysis.get("confidence"),
+                scores=analysis.get("scores"),
                 summary=analysis.get("summary"),
                 coaching_notes=analysis.get("coaching_notes"),
             )

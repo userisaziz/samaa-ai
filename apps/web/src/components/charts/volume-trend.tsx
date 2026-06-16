@@ -29,7 +29,7 @@ function VolumeTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
-export function VolumeTrend({ data, title = "Conversation Volume" }: VolumeTrendProps) {
+export function VolumeTrend({ data, title = "Interaction Volume" }: VolumeTrendProps) {
   const hasData = data.length > 0 && data.some((d) => d.conversation_count > 0);
 
   return (

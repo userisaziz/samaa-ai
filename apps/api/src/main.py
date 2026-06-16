@@ -5,8 +5,8 @@ from src.api.v1.router import api_v1_router
 from src.config import settings
 
 app = FastAPI(
-    title="SAMAA API",
-    description="Sales Audio Management & AI Analysis - Backend API",
+    title="CXSAMAA API",
+    description="Customer Experience Audio Management & AI Analysis - Backend API",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",

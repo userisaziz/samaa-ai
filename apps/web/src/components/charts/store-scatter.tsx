@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
           Deal Closure: <span className="font-mono text-ink">{item.conversion_rate != null ? `${item.conversion_rate.toFixed(1)}%` : "–"}</span>
         </p>
         <p className="text-xs text-steel">
-          Conversations: <span className="font-mono text-ink">{item.total_conversations}</span>
+          Interactions: <span className="font-mono text-ink">{item.total_conversations}</span>
         </p>
       </div>
     </div>

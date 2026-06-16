@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     )
 
     # Database
-    database_url: str = "postgresql+asyncpg://samaa:samaa_dev_password@localhost:5432/samaa"
-    database_url_sync: str = "postgresql://samaa:samaa_dev_password@localhost:5432/samaa"
+    database_url: str = "postgresql+asyncpg://cxsamaa:cxsamaa_dev_password@localhost:5432/cxsamaa"
+    database_url_sync: str = "postgresql://cxsamaa:cxsamaa_dev_password@localhost:5432/cxsamaa"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     r2_account_id: str = ""
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""
-    r2_bucket: str = "samaa-audio"
+    r2_bucket: str = "cxsamaa-audio"
     r2_public_url: str = ""  # Optional: public bucket URL for direct access
 
     # NVIDIA NIM

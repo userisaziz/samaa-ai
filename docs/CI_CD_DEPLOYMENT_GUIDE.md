@@ -1,4 +1,4 @@
-# SAMAA — Complete CI/CD & Custom Domain Setup Guide
+# CXSAMAA — Complete CI/CD & Custom Domain Setup Guide
 
 Automated deployment from GitHub to Oracle Cloud with custom domain, SSL, and zero-downtime updates.
 
