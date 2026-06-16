@@ -103,47 +103,58 @@ async def confirm_upload(
     recording_id: str,
     file_size: int | None = None,
 ) -> Recording:
-    """Confirm that a file has been uploaded to R2 and start the processing pipeline.
-    
-    This is called by the frontend after successfully uploading directly to R2.
+    """Confirm that a file has been uploaded to R2 and mark it as UPLOADED.
+
+    In ``pipeline_mode=full`` (dev/local) the processing pipeline is
+    auto-enqueued. In ``pipeline_mode=cloud-only`` (GCP Cloud Run) the
+    recording stops at UPLOADED — the pipeline is started later from a
+    local machine that shares the same database.
     """
     from sqlalchemy import select
-    from src.workers.pipeline import enqueue_first_stage
-    
+
     # Get the recording using proper ORM query
     stmt = select(Recording).where(Recording.id == uuid.UUID(recording_id))
     result = await db.execute(stmt)
     recording = result.scalar_one_or_none()
-    
+
     if not recording:
         raise ValueError(f"Recording {recording_id} not found")
-    
+
     if recording.status != RecordingStatus.PENDING_UPLOAD:
         raise ValueError(
             f"Recording is in {recording.status.value} state, expected PENDING_UPLOAD"
         )
-    
+
     # Update recording status and metadata
     recording.status = RecordingStatus.UPLOADED
     if file_size:
         recording.file_size = file_size
-    
+
     await db.flush()
     await db.refresh(recording)
-    
-    # Start the processing pipeline
-    try:
-        enqueue_first_stage(str(recording.id))
+
+    # Only auto-enqueue pipeline when running in full mode (dev/local).
+    # cloud-only mode: pipeline is triggered manually from local machine.
+    if settings.pipeline_mode == "full":
+        from src.workers.pipeline import enqueue_first_stage
+        try:
+            enqueue_first_stage(str(recording.id))
+            logger.info(
+                "Confirmed upload and started pipeline for recording %s",
+                recording_id,
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to enqueue pipeline for recording %s: %s",
+                recording_id,
+                e,
+            )
+            # Don't raise — the upload was successful, pipeline can be retried manually
+    else:
         logger.info(
-            "Confirmed upload and started pipeline for recording %s",
+            "Confirmed upload for recording %s (pipeline_mode=%s, no auto-enqueue)",
             recording_id,
+            settings.pipeline_mode,
         )
-    except Exception as e:
-        logger.error(
-            "Failed to enqueue pipeline for recording %s: %s",
-            recording_id,
-            e,
-        )
-        # Don't raise — the upload was successful, pipeline can be retried manually
-    
+
     return recording

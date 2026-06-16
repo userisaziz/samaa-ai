@@ -1,40 +1,50 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Multi-stage build for Next.js standalone output
+# Build context: repo root (required for @samaa/shared workspace dependency)
 
+# ── Stage 1: Install dependencies ────────────────────────────────────────────
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files
+# Copy root workspace files needed for npm workspace resolution
 COPY package.json package-lock.json ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
 
-# Install dependencies
-RUN npm ci
+# Install all workspace dependencies
+RUN npm ci --workspace=apps/web --include-workspace-root 2>/dev/null || npm ci
 
-# Copy source code
-COPY . .
+# ── Stage 2: Build ───────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Build the application
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# Copy shared package source (used as workspace dep)
+COPY packages/shared/ ./packages/shared/
+
+# Copy web app source
+COPY apps/web/ ./apps/web/
+
+# Build Next.js (standalone output)
+WORKDIR /app/apps/web
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine
-
+# ── Stage 3: Production runtime ──────────────────────────────────────────────
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Copy package.json and install production dependencies only
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
-
-# Copy built application from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./
-
-# Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Expose port
-EXPOSE 3000
+# Copy standalone output + static assets
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./.next/static
+COPY --from=builder /app/apps/web/public ./public
 
-# Start the application
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Start standalone server
 CMD ["node", "server.js"]

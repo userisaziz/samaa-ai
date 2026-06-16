@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"  # Redis broker for Celery
     celery_result_backend: str = "redis://localhost:6379/1"  # Redis backend for results
 
+    # Pipeline Mode
+    # "full"       = upload + auto-enqueue pipeline (dev/local with Celery)
+    # "cloud-only" = upload + dashboard only, no pipeline dispatch (GCP Cloud Run)
+    pipeline_mode: str = "full"
+
     # App
     app_env: str = "development"
     app_debug: bool = True

@@ -165,10 +165,12 @@ async def upload_recording(
     await db.flush()
     await db.refresh(recording)
     
-    # Start processing pipeline
-    from src.workers.pipeline import enqueue_first_stage
+    # Start processing pipeline only in full mode (dev/local).
+    # cloud-only mode: pipeline is triggered manually from local machine.
     from src.config import settings
-    enqueue_first_stage(str(recording.id), settings.pipeline_version)
+    if settings.pipeline_mode == "full":
+        from src.workers.pipeline import enqueue_first_stage
+        enqueue_first_stage(str(recording.id), settings.pipeline_version)
     
     return recording
 
@@ -191,11 +193,13 @@ async def reprocess_recording(db: AsyncSession, recording: Recording) -> Recordi
     recording.error_message = None
     await db.flush()
     await db.refresh(recording)
-    
-    # Restart pipeline
-    from src.workers.pipeline import enqueue_first_stage
+
+    # Restart pipeline only in full mode.
+    # cloud-only: status is reset to UPLOADED; local pipeline runner picks it up.
     from src.config import settings
-    enqueue_first_stage(str(recording.id), settings.pipeline_version)
+    if settings.pipeline_mode == "full":
+        from src.workers.pipeline import enqueue_first_stage
+        enqueue_first_stage(str(recording.id), settings.pipeline_version)
     
     return recording
 
