@@ -232,10 +232,10 @@ export default function SalespersonDetailPage() {
           description={overallScore != null ? "Across all skills" : "No scores available"}
         />
         <KPICard
-          title="Conversion Rate"
+          title="Deal Closure Rate"
           value={conversionRate != null ? `${conversionRate.toFixed(0)}%` : "—"}
           icon={Target}
-          description={conversionRate != null ? "Sales conversion" : "No data yet"}
+          description={conversionRate != null ? "Sales success rate" : "No data yet"}
         />
         <KPICard
           title="Interactions"
@@ -352,11 +352,11 @@ export default function SalespersonDetailPage() {
         </Card>
       </div>
 
-      {/* Conversion Gauge + Score Trend */}
+      {/* Deal Closure Gauge + Score Trend */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ConversionGauge
           value={conversionRate ?? null}
-          title="Conversion Rate"
+          title="Deal Closure Rate"
           label={performance?.total_conversations ? `${performance.total_conversations} conversations` : undefined}
         />
         <ScoreTrend

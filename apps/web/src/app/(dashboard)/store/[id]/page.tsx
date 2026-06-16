@@ -186,16 +186,16 @@ export default function StoreDashboardPage() {
           description="Active in this store"
         />
         <KPICard
-          title="Conversion Rate"
+          title="Deal Closure Rate"
           value={storeMetrics?.conversion_rate != null ? `${storeMetrics.conversion_rate.toFixed(0)}%` : "—"}
           icon={Target}
-          description="Sales conversion"
+          description="Sales success rate"
         />
       </div>
 
       {/* Analytics Charts */}
       <div className="space-y-4">
-        {/* Row 1: Outcome Donut + Conversion Gauge */}
+        {/* Row 1: Outcome Donut + Deal Closure Gauge */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           <OutcomeDonut data={analytics?.outcome_distribution ?? []} />
           <ConversionGauge
@@ -247,7 +247,7 @@ export default function StoreDashboardPage() {
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Shift</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Conversations</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Conversion</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Deal Closure</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

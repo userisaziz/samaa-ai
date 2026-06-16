@@ -182,8 +182,8 @@ export default function RecordingDetailPage() {
         conv.id,
         transcript.filter(
           (seg) =>
-            seg.start_time >= conv.start_time &&
-            seg.end_time <= conv.end_time,
+            seg.start_time < conv.end_time + 1.0 &&  // segment starts before conv ends (+1s tolerance)
+            seg.end_time > conv.start_time - 1.0,    // segment ends after conv starts (-1s tolerance)
         ),
       );
     }

@@ -220,7 +220,9 @@ export default function SalespeoplePage() {
           <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Salespeople</h1>
           <p className="mt-1 text-sm text-steel">
             {salespeople ? (
-              <span className="font-mono">{salespeople.length}</span> + " team members"
+              <>
+                <span className="font-mono">{salespeople.length}</span> team members
+              </>
             ) : (
               "Manage sales team members"
             )}

@@ -218,14 +218,14 @@ export default function CoachingPage() {
               description="Across all skills"
             />
             <KPICard
-              title="Conversion Rate"
+              title="Deal Closure Rate"
               value={
                 performance?.conversion_rate != null
                   ? `${performance.conversion_rate.toFixed(0)}%`
                   : "—"
               }
               icon={TrendingUp}
-              description="Sales conversion"
+              description="Sales success rate"
             />
           </div>
 
@@ -398,7 +398,7 @@ export default function CoachingPage() {
             </Card>
           )}
 
-          {/* Historical Trend + Conversion Gauge */}
+          {/* Historical Trend + Deal Closure Gauge */}
           <div className="grid gap-6 lg:grid-cols-2">
             <ScoreTrend
               data={salespersonAnalytics?.score_trend ?? storeAnalytics?.score_trend ?? []}
@@ -406,7 +406,7 @@ export default function CoachingPage() {
             />
             <ConversionGauge
               value={performance?.conversion_rate != null ? performance.conversion_rate / 100 : null}
-              title="Conversion Rate"
+              title="Deal Closure Rate"
               label={performance?.total_conversations ? `${performance.total_conversations} conversations` : undefined}
             />
           </div>

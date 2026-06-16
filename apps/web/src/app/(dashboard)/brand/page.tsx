@@ -167,7 +167,7 @@ export default function BrandDashboardPage() {
 
       {/* Analytics Charts */}
       <div className="space-y-4">
-        {/* Row 1: Outcome Donut + Conversion Gauge */}
+        {/* Row 1: Outcome Donut + Deal Closure Gauge */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <OutcomeDonut data={analytics?.outcome_distribution ?? []} />
           <ConversionGauge

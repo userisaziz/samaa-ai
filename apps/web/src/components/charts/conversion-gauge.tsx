@@ -22,7 +22,7 @@ function gaugeColor(value: number): string {
 
 export function ConversionGauge({
   value,
-  title = "Conversion Rate",
+  title = "Deal Closure Rate",
   label,
 }: ConversionGaugeProps) {
   // Auto-detect format: if value > 1, assume it's a percentage (0-100), otherwise it's a ratio (0-1)
@@ -75,7 +75,7 @@ export function ConversionGauge({
         ) : (
           <div className="flex h-[180px] sm:h-[190px] lg:h-[200px] flex-col items-center justify-center text-center">
             <Inbox className="h-8 w-8 text-stone/40 mb-2" />
-            <p className="text-sm text-steel">No conversion data yet</p>
+            <p className="text-sm text-steel">No deal closure data yet</p>
           </div>
         )}
       </CardContent>

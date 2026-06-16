@@ -196,7 +196,7 @@ export function SalesFunnel({
             <div className="grid grid-cols-3 border-t border-border/40">
               <div className="px-5 py-4 border-r border-border/40">
                 <p className="text-[11px] uppercase tracking-wider text-steel/50 mb-1">
-                  Conversion rate
+                  Deal closure rate
                 </p>
                 <p className="text-xl font-medium font-mono tabular-nums" style={{ color: "oklch(0.65 0.2 165)" }}>
                   {pct(botCount, topCount)}%
