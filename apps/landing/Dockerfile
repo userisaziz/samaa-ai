@@ -1,17 +1,16 @@
 # Multi-stage build for Vite + React landing page
-# Build context: repo root (for monorepo workspace resolution)
+# Build context: repo root
 # Production: nginx serving static dist/ — no Node.js runtime needed
 
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
-WORKDIR /app
-
-# Copy landing page source
-COPY apps/landing/package.json apps/landing/package-lock.json* ./apps/landing/
-
-# Install dependencies
 WORKDIR /app/apps/landing
-RUN npm ci --prefer-offline 2>/dev/null || npm install
+
+# Copy package files first (layer caching)
+COPY apps/landing/package.json apps/landing/package-lock.json ./
+
+# Install dependencies (npm install is more robust for Docker than npm ci)
+RUN npm install
 
 # Copy source and build
 COPY apps/landing/ ./
