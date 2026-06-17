@@ -1,6 +1,6 @@
 # CXSAMAA — Customer Experience Audio Management & AI Analysis
 
-CXSAMAA is a full-stack platform for uploading, transcribing, diarizing, analyzing, and scoring customer interaction recordings. It uses NVIDIA NIM APIs for STT/diarization/LLM and provides a dashboard for browsing conversations, metrics, and exports.
+CXSAMAA captures in-store customer conversations, processes them through proprietary AI, and delivers actionable insights that improve store performance, employee coaching, and business outcomes.
 
 
 
