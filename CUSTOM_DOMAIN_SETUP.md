@@ -4,38 +4,20 @@
 
 This guide will help you map your custom domain `cxsamaa.store` to your GCP Cloud Run services.
 
-### Planned URL Structure:
-- **Landing Page**: `https://cxsamaa.store` (main marketing site)
-- **Dashboard**: `https://app.cxsamaa.store` or `https://dashboard.cxsamaa.store`
-- **API**: `https://api.cxsamaa.store`
+### URL Structure:
+- **Landing Page**: `https://cxsamaa.store` (main marketing site) ✅ **Ready to deploy**
+- **Dashboard**: `https://app.cxsamaa.store` (dashboard app) ✅ **Configured**
+- **API**: `https://api.cxsamaa.store` (backend API) ✅ **Configured**
 
 ---
 
-## ⚠️ Prerequisites
+## ✅ Prerequisites Complete
 
-### 1. Services Must Be Deployed First
-
-Before mapping your domain, you need working Cloud Run services. Currently, your deployment is failing due to missing GitHub secrets.
-
-**To fix the deployment, you need to:**
-
-#### Option A: Fix GitHub Actions (Recommended)
-1. Go to: https://github.com/userisaziz/samaa-ai/settings/actions
-2. Under "Workflow permissions", select: **"Read and write permissions"**
-3. Check: **"Allow GitHub Actions to create and approve pull requests"**
-4. Add required repository secrets (see GITHUB_SECRETS_SETUP.md)
-5. Push to main to trigger deployment
-
-#### Option B: Manual Deploy (Faster for testing)
-```bash
-# Set up secrets locally
-cp apps/api/.env.prod.example apps/api/.env.prod
-cp apps/web/.env.prod.example apps/web/.env.prod
-
-# Edit the files with your actual credentials
-# Then run:
-./deploy.sh
-```
+- [x] Landing page Dockerfile created (`apps/landing/Dockerfile`)
+- [x] Nginx configuration for SPA (`apps/landing/nginx.conf`)
+- [x] Cloud Build pipeline updated (`cloudbuild.yaml`)
+- [x] GitHub Actions workflow updated (`deploy-gcp.yml`)
+- [x] Manual deploy script updated (`deploy.sh`)
 
 ---
 

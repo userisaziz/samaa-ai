@@ -176,49 +176,105 @@ WEB_URL=$(gcloud run services describe samaa-web --region="${GCP_REGION}" --form
 echo -e "${GREEN}  ✓ Frontend deployed: ${WEB_URL}${NC}"
 echo ""
 
-# --- Step 8: Setup custom domain ---
-echo -e "${YELLOW}[8/8] Setting up custom domain...${NC}"
+# --- Step 8: Deploy Landing Page ---
+echo -e "${YELLOW}[8/9] Deploying Landing Page service...${NC}"
 
+gcloud run deploy samaa-landing \
+  --image="gcr.io/${GCP_PROJECT}/samaa-landing:${TAG}" \
+  --region="${GCP_REGION}" \
+  --platform=managed \
+  --port=8080 \
+  --cpu=1 \
+  --memory=256Mi \
+  --min-instances=0 \
+  --max-instances=3 \
+  --concurrency=100 \
+  --timeout=30
+
+LANDING_URL=$(gcloud run services describe samaa-landing --region="${GCP_REGION}" --format="value(status.url)")
+echo -e "${GREEN}  ✓ Landing page deployed: ${LANDING_URL}${NC}"
+echo ""
+
+# --- Step 9: Setup custom domains ---
+echo -e "${YELLOW}[9/9] Setting up custom domains...${NC}"
+
+# Landing page (root domain)
 if gcloud run domain-mappings describe --domain="${DOMAIN}" --region="${GCP_REGION}" &>/dev/null; then
     echo -e "${GREEN}  ✓ Domain mapping exists: ${DOMAIN}${NC}"
 else
-    echo "  Creating domain mapping for ${DOMAIN}..."
+    echo "  Creating domain mapping for ${DOMAIN} (landing page)..."
     gcloud run domain-mappings create \
-      --service=samaa-web \
+      --service=samaa-landing \
       --domain="${DOMAIN}" \
       --region="${GCP_REGION}" \
       || echo -e "${YELLOW}  ⚠ Domain mapping requires DNS verification${NC}"
-    
-    echo ""
-    echo -e "${YELLOW}  DNS Setup (required for HTTPS):${NC}"
-    echo "    Add these DNS records at your domain registrar:"
-    echo ""
-    echo "    A record:"
-    echo "      Type: A"
-    echo "      Name: @"
-    echo "      Value: $(gcloud run services describe samaa-web --region="${GCP_REGION}" --format="value(status.address.url)")"
-    echo "      TTL: 300"
-    echo ""
-    echo "    TXT record (for verification):"
-    echo "      (Google will provide this after domain mapping creation)"
-    echo ""
-    echo "    Wait 5-30 minutes for DNS propagation"
 fi
+
+# Dashboard (app subdomain)
+APP_DOMAIN="app.${DOMAIN}"
+if gcloud run domain-mappings describe --domain="${APP_DOMAIN}" --region="${GCP_REGION}" &>/dev/null; then
+    echo -e "${GREEN}  ✓ Domain mapping exists: ${APP_DOMAIN}${NC}"
+else
+    echo "  Creating domain mapping for ${APP_DOMAIN} (dashboard)..."
+    gcloud run domain-mappings create \
+      --service=samaa-web \
+      --domain="${APP_DOMAIN}" \
+      --region="${GCP_REGION}" \
+      || echo -e "${YELLOW}  ⚠ Domain mapping requires DNS verification${NC}"
+fi
+
+# API (api subdomain)
+API_DOMAIN="api.${DOMAIN}"
+if gcloud run domain-mappings describe --domain="${API_DOMAIN}" --region="${GCP_REGION}" &>/dev/null; then
+    echo -e "${GREEN}  ✓ Domain mapping exists: ${API_DOMAIN}${NC}"
+else
+    echo "  Creating domain mapping for ${API_DOMAIN} (API)..."
+    gcloud run domain-mappings create \
+      --service=samaa-api \
+      --domain="${API_DOMAIN}" \
+      --region="${GCP_REGION}" \
+      || echo -e "${YELLOW}  ⚠ Domain mapping requires DNS verification${NC}"
+fi
+
+echo ""
+echo -e "${YELLOW}  DNS Setup (required for HTTPS):${NC}"
+echo "    Add these DNS records at your domain registrar:"
+echo ""
+echo "    For ${DOMAIN} (landing page):"
+echo "      Type: A"
+echo "      Name: @"
+echo "      Value: [Google-provided IP from domain mapping]"
+echo "      TTL: 300"
+echo ""
+echo "    For ${APP_DOMAIN} (dashboard):"
+echo "      Type: CNAME"
+echo "      Name: app"
+echo "      Value: ghs.googlehosted.com"
+echo "      TTL: 300"
+echo ""
+echo "    For ${API_DOMAIN} (API):"
+echo "      Type: CNAME"
+echo "      Name: api"
+echo "      Value: ghs.googlehosted.com"
+echo "      TTL: 300"
+echo ""
+echo "    Wait 5-30 minutes for DNS propagation"
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo -e "${GREEN}  ✅ Deployment Complete!${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
-echo -e "  ${BLUE}Frontend:${NC}  https://${DOMAIN}"
-echo -e "  ${BLUE}API:${NC}       ${API_URL}"
-echo -e "  ${BLUE}Worker:${NC}    ${WORKER_URL}"
-echo -e "  ${BLUE}Docs:${NC}      ${API_URL}/docs"
+echo -e "  ${BLUE}Landing:${NC}   https://${DOMAIN}"
+echo -e "  ${BLUE}Dashboard:${NC} https://${APP_DOMAIN}"
+echo -e "  ${BLUE}API:${NC}       https://${API_DOMAIN}"
+echo -e "  ${BLUE}Docs:${NC}      https://${API_DOMAIN}/docs"
 echo ""
 echo -e "${BLUE}Services Deployed:${NC}"
 echo "  - samaa-api (1 CPU, 1GB RAM, 50 concurrency, 5 min timeout)"
 echo "  - samaa-worker (4 CPU, 8GB RAM, 1 concurrency, 10 min timeout)"
 echo "  - samaa-web (1 CPU, 512MB RAM, 80 concurrency)"
+echo "  - samaa-landing (1 CPU, 256MB RAM, 100 concurrency)"
 echo ""
 echo -e "${BLUE}Useful Commands:${NC}"
 echo "  View logs:     gcloud run services logs read samaa-api --region=${GCP_REGION}"
@@ -227,7 +283,9 @@ echo "  Task queue:    gcloud tasks queues describe pipeline-queue --location=${
 echo "  List services: gcloud run services list --region=${GCP_REGION}"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
-echo "  1. Test upload at: https://${DOMAIN}/upload"
-echo "  2. Monitor tasks:  gcloud tasks queues list --location=${GCP_REGION}"
-echo "  3. View metrics:   gcloud run services describe samaa-api --region=${GCP_REGION}"
+echo "  1. Configure DNS records at your domain registrar"
+echo "  2. Wait for DNS propagation (5-30 minutes)"
+echo "  3. Test landing page: https://${DOMAIN}"
+echo "  4. Test dashboard: https://${APP_DOMAIN}"
+echo "  5. Test API: https://${API_DOMAIN}/docs"
 echo ""

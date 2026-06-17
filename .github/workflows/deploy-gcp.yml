@@ -137,6 +137,31 @@ jobs:
           
           echo "::warning::Web did not become ready after 75s"
 
+      - name: Health check — Landing readiness
+        run: |
+          LANDING_URL=$(gcloud run services describe samaa-landing \
+            --region=${{ env.REGION }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "  Landing URL: ${LANDING_URL}"
+
+          # Retry readiness check
+          for i in 1 2 3 4 5; do
+            READY=$(gcloud run services describe samaa-landing \
+              --region=${{ env.REGION }} \
+              --project=${{ secrets.GCP_PROJECT_ID }} \
+              --format='value(status.latestReadyRevisionName)')
+            
+            if [ -n "${READY}" ]; then
+              echo "  Landing status: READY (revision: ${READY})"
+              exit 0
+            fi
+            echo "  Attempt ${i}/5: not ready yet, waiting 15s..."
+            sleep 15
+          done
+          
+          echo "::warning::Landing did not become ready after 75s"
+
       # ── Summary ──────────────────────────────────────────────────
       - name: Deploy summary
         if: always()
