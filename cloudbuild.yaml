@@ -27,6 +27,7 @@ steps:
 
   # Write .env.prod files from Secret Manager (files are gitignored, so we create them at build time)
   # MUST happen BEFORE Docker builds so NEXT_PUBLIC_API_URL is baked into the JS bundle
+  # Writes two formats: plain KEY=VALUE (for Docker build) and YAML key: "value" (for deploy --env-vars-file)
   # Override NEXT_PUBLIC_API_URL with custom domain for direct API calls
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -38,12 +39,13 @@ steps:
         printf '%s\n' "$$WEB_ENV_PROD" > apps/web/.env.prod && \
         if grep -q "NEXT_PUBLIC_API_URL" apps/web/.env.prod; then \
           sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://api.cxsamaa.store/api/v1|g" apps/web/.env.prod; \
-          echo "Updated NEXT_PUBLIC_API_URL"; \
         else \
           echo "NEXT_PUBLIC_API_URL=https://api.cxsamaa.store/api/v1" >> apps/web/.env.prod; \
-          echo "Added NEXT_PUBLIC_API_URL for direct API calls"; \
         fi && \
-        echo "Final web .env.prod contents:" && cat apps/web/.env.prod
+        cat apps/api/.env.prod | awk -F= '{print $$1 ": \"" $$2 "\""}' > apps/api/.env.prod.yaml && \
+        cat apps/web/.env.prod | awk -F= '{print $$1 ": \"" $$2 "\""}' > apps/web/.env.prod.yaml && \
+        echo "API YAML env:" && cat apps/api/.env.prod.yaml && \
+        echo "Web YAML env:" && cat apps/web/.env.prod.yaml
     secretEnv: ['API_ENV_PROD', 'WEB_ENV_PROD']
     waitFor: ['auth-docker']
     id: 'write-env-files'
@@ -115,7 +117,7 @@ steps:
       - '--max-instances=5'
       - '--concurrency=80'
       - '--timeout=60'
-      - '--env-vars-file=apps/web/.env.prod'
+      - '--env-vars-file=apps/web/.env.prod.yaml'
       # Note: --allow-unauthenticated removed due to org policy iam.allowedPolicyMemberDomains
       # Services are domain-restricted to marsatijarah.com. Access via custom domains or IAM.
     waitFor: ['write-env-files']
