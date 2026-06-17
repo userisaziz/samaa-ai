@@ -54,6 +54,7 @@ steps:
   # Write .env.prod files from Secret Manager (files are gitignored, so we create them at build time)
   # Convert KEY=VALUE format to YAML (key: "value") for gcloud run deploy --env-vars-file
   # Override API_BASE_URL with actual Cloud Run API URL for production rewrites
+  # Override NEXT_PUBLIC_API_URL with custom domain for direct API calls
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
@@ -70,6 +71,13 @@ steps:
         else \
           echo "API_BASE_URL: \"$${API_URL}\"" >> apps/web/.env.prod; \
           echo "Added new API_BASE_URL"; \
+        fi && \
+        if grep -q "NEXT_PUBLIC_API_URL" apps/web/.env.prod; then \
+          sed -i "s|NEXT_PUBLIC_API_URL:.*|NEXT_PUBLIC_API_URL: \"https://api.cxsamaa.store/api/v1\"|g" apps/web/.env.prod; \
+          echo "Updated NEXT_PUBLIC_API_URL"; \
+        else \
+          echo "NEXT_PUBLIC_API_URL: \"https://api.cxsamaa.store/api/v1\"" >> apps/web/.env.prod; \
+          echo "Added NEXT_PUBLIC_API_URL for direct API calls"; \
         fi && \
         echo "Final web .env.prod contents:" && cat apps/web/.env.prod
     secretEnv: ['API_ENV_PROD', 'WEB_ENV_PROD']
