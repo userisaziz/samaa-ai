@@ -52,19 +52,19 @@ echo -e "${GREEN}  ✓ Prerequisites OK${NC}"
 
 # --- Environment ---
 echo -e "${YELLOW}[2/5] Checking environment...${NC}"
-if [ ! -f "$ROOT_DIR/.env" ]; then
-    echo -e "${RED}  .env not found at repo root. Copy from .env.example and fill in values.${NC}"
+if [ ! -f "$ROOT_DIR/.env.local" ]; then
+    echo -e "${RED}  .env.local not found at repo root. Create one with your local config.${NC}"
     exit 1
 fi
-# Symlink root .env into apps/api so python-dotenv finds it
+# Symlink root .env.local into apps/api so python-dotenv finds it
 if [ ! -e "$API_DIR/.env" ]; then
-    ln -sf ../../.env "$API_DIR/.env"
+    ln -sf ../../.env.local "$API_DIR/.env"
 fi
 echo -e "${GREEN}  ✓ Environment configured${NC}"
 
 # --- Infrastructure ---
 echo -e "${YELLOW}[3/5] Checking infrastructure...${NC}"
-source "$ROOT_DIR/.env" 2>/dev/null || true
+source "$ROOT_DIR/.env.local" 2>/dev/null || true
 
 if [[ "$DATABASE_URL" == *"neon.tech"* ]] || [[ "$DATABASE_URL" == *"supabase.co"* ]]; then
     echo -e "${GREEN}  ✓ Using managed PostgreSQL${NC}"
