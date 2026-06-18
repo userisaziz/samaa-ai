@@ -22,6 +22,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Mic,
   MessageSquare,
@@ -105,7 +106,7 @@ export default function RecordingDetailPage() {
   const playerRefs = useRef<Map<string, WaveformPlayerHandle>>(new Map());
 
   // Fetch recording
-  const { data: recording } = useQuery({
+  const { data: recording, isLoading: recordingLoading } = useQuery({
     queryKey: ["recording", recordingId],
     queryFn: () => api.get<Recording>(`/recordings/${recordingId}`),
     enabled: !!recordingId,
@@ -288,6 +289,27 @@ export default function RecordingDetailPage() {
 
   return (
     <div className="flex flex-col h-full p-4 sm:p-6 lg:p-8">
+      {/* Loading Skeleton */}
+      {recordingLoading && (
+        <div className="shrink-0 space-y-6">
+          <Skeleton className="h-4 w-48" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+            <Card><CardContent className="pt-6"><Skeleton className="h-8 w-16" /><Skeleton className="mt-2 h-3 w-32" /></CardContent></Card>
+            <Card><CardContent className="pt-6"><Skeleton className="h-8 w-16" /><Skeleton className="mt-2 h-3 w-32" /></CardContent></Card>
+          </div>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Header Section - Fixed at top */}
       <div className="shrink-0 space-y-4">
         {/* Breadcrumbs */}

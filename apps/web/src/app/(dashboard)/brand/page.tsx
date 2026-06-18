@@ -6,6 +6,8 @@ import { api } from "@/lib/api-client";
 import type { Brand, Store as StoreType, Salesperson, SalespersonPerformance } from "@samaa/shared";
 import { KPICard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { KPICardsSkeleton, ChartsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import {
   Table,
   TableBody,
@@ -38,7 +40,7 @@ export default function BrandDashboardPage() {
     from.setHours(0, 0, 0, 0);
     return { from, to };
   });
-  const { data: stores } = useQuery({
+  const { data: stores, isLoading: storesLoading } = useQuery({
     queryKey: ["stores"],
     queryFn: () => api.get<StoreType[]>("/stores"),
   });
@@ -76,7 +78,7 @@ export default function BrandDashboardPage() {
 
   // Fetch analytics overview + salespeople comparison
   const brandId = stores?.[0]?.brand_id;
-  const { data: analytics } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["analytics-overview", "brand", brandId, dateRange.from.toISOString(), dateRange.to.toISOString()],
     queryFn: () =>
       api.get<AnalyticsOverviewResponse>(
@@ -138,6 +140,9 @@ export default function BrandDashboardPage() {
       </div>
 
       {/* KPI Cards */}
+      {storesLoading ? (
+        <KPICardsSkeleton count={4} />
+      ) : (
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Total Stores"
@@ -164,8 +169,12 @@ export default function BrandDashboardPage() {
           description="Brand-wide average"
         />
       </div>
+      )}
 
       {/* Analytics Charts */}
+      {analyticsLoading ? (
+        <ChartsSkeleton count={5} />
+      ) : (
       <div className="space-y-4">
         {/* Row 1: Outcome Donut + Deal Closure Gauge */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -194,6 +203,7 @@ export default function BrandDashboardPage() {
         {/* Row 5: Team Skill Heatmap */}
         <SkillHeatmap data={salespeopleComparison?.salespeople ?? []} />
       </div>
+      )}
 
       {/* Store Ranking Table */}
       <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
@@ -204,15 +214,17 @@ export default function BrandDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {stores && stores.length > 0 ? (
+          {storesLoading ? (
+            <TableSkeleton rows={4} columns={5} />
+          ) : stores && stores.length > 0 ? (
             <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="min-w-[640px]">
+              <div className="min-w-[400px] sm:min-w-[640px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Store</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Location</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Salespeople</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">Location</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right hidden sm:table-cell">Salespeople</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Interactions</TableHead>
                 </TableRow>
@@ -238,10 +250,10 @@ export default function BrandDashboardPage() {
                           {store.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-steel">
+                      <TableCell className="text-steel hidden sm:table-cell">
                         {store.location || "—"}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm">{agg.count}</TableCell>
+                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{agg.count}</TableCell>
                       <TableCell className="text-right">
                         {agg.avgScore != null ? (
                           <Badge
@@ -291,7 +303,13 @@ export default function BrandDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {perfValues.length > 0 ? (
+          {performanceQueries.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : perfValues.length > 0 ? (
             <div className="space-y-2">
               {coachingAlerts.length > 0 ? (
                 coachingAlerts.map((p) => (

@@ -313,7 +313,7 @@ export default function SalespeoplePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rankedSalespeople.slice(0, 6).map((sp) => {
                 const rank = sp.rank;
                 const score = sp.analytics?.avg_overall_score || 0;
@@ -502,7 +502,7 @@ export default function SalespeoplePage() {
             </div>
           ) : filteredAndSorted.length > 0 ? (
             <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="min-w-[600px]">
+              <div className="min-w-[350px] sm:min-w-[600px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -525,7 +525,7 @@ export default function SalespeoplePage() {
                       </div>
                     </TableHead>
                     <TableHead
-                      className="text-[11px] font-semibold uppercase tracking-wider text-steel cursor-pointer hover:text-ink transition-colors select-none"
+                      className="text-[11px] font-semibold uppercase tracking-wider text-steel cursor-pointer hover:text-ink transition-colors select-none hidden sm:table-cell"
                       onClick={() => handleSort("shift")}
                     >
                       <div className="flex items-center gap-1.5">
@@ -533,8 +533,8 @@ export default function SalespeoplePage() {
                         <SortIcon field="shift" config={sortConfig} />
                       </div>
                     </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Device #</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Email</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden md:table-cell">Device #</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden lg:table-cell">Email</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -553,9 +553,9 @@ export default function SalespeoplePage() {
                         </Link>
                       </TableCell>
                       <TableCell className="text-steel">{sp.role || "—"}</TableCell>
-                      <TableCell className="text-steel">{sp.shift || "—"}</TableCell>
-                      <TableCell className="text-steel font-mono text-sm">{sp.device_number || "—"}</TableCell>
-                      <TableCell className="text-steel">{sp.email || "—"}</TableCell>
+                      <TableCell className="text-steel hidden sm:table-cell">{sp.shift || "—"}</TableCell>
+                      <TableCell className="text-steel font-mono text-sm hidden md:table-cell">{sp.device_number || "—"}</TableCell>
+                      <TableCell className="text-steel hidden lg:table-cell">{sp.email || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

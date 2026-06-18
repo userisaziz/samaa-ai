@@ -15,6 +15,8 @@ import type {
 import { KPICard } from "@/components/kpi-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { KPICardsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import {
   Table,
   TableBody,
@@ -116,14 +118,14 @@ export default function SalespersonDetailPage() {
   const [dateRange, setDateRange] = useState<DateRange>(() => getDateRange(30));
 
   // Fetch salesperson profile
-  const { data: salesperson } = useQuery({
+  const { data: salesperson, isLoading: salespersonLoading } = useQuery({
     queryKey: ["salesperson", salespersonId],
     queryFn: () => api.get<Salesperson>(`/salespeople/${salespersonId}`),
     enabled: !!salespersonId,
   });
 
   // Fetch performance data
-  const { data: performance } = useQuery({
+  const { data: performance, isLoading: performanceLoading } = useQuery({
     queryKey: ["salesperson-performance", salespersonId],
     queryFn: () =>
       api.get<SalespersonPerformance>(
@@ -133,7 +135,7 @@ export default function SalespersonDetailPage() {
   });
 
   // Fetch recent recordings
-  const { data: recordingsData } = useQuery({
+  const { data: recordingsData, isLoading: recordingsLoading } = useQuery({
     queryKey: ["salesperson-recordings", salespersonId],
     queryFn: () =>
       api.get<{ items: Recording[]; total: number }>(
@@ -218,6 +220,9 @@ export default function SalespersonDetailPage() {
       </div>
 
       {/* KPI Cards */}
+      {performanceLoading ? (
+        <KPICardsSkeleton count={4} />
+      ) : (
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Total Interactions"
@@ -244,6 +249,7 @@ export default function SalespersonDetailPage() {
           description={recordingsData?.total ? "Total uploads" : "No recordings uploaded"}
         />
       </div>
+      )}
 
       {/* Skill Scores + Radar Chart */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -256,7 +262,19 @@ export default function SalespersonDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!performance ? (
+            {performanceLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-8" />
+                    </div>
+                    <Skeleton className="h-2 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : !performance ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Inbox className="h-10 w-10 text-stone/40 mb-3" />
                 <p className="text-sm font-medium text-steel">
@@ -317,7 +335,11 @@ export default function SalespersonDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {radarData.some((d) => d.score > 0) ? (
+            {performanceLoading ? (
+              <div className="h-[280px] flex items-center justify-center">
+                <Skeleton className="h-[240px] w-[240px] rounded-full" />
+              </div>
+            ) : radarData.some((d) => d.score > 0) ? (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={radarData}>
@@ -382,7 +404,9 @@ export default function SalespersonDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {recordings.length > 0 ? (
+          {recordingsLoading ? (
+            <TableSkeleton rows={5} columns={5} />
+          ) : recordings.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
