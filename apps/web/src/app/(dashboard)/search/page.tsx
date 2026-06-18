@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SearchResultsSkeleton } from "@/components/loading-skeleton";
 import {
   Select,
   SelectContent,
@@ -56,7 +57,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div>
         <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight text-ink leading-tight">Semantic Search</h1>
         <p className="mt-1 text-sm text-steel">
@@ -102,9 +103,7 @@ export default function SearchPage() {
 
       {/* Results */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+        <SearchResultsSkeleton count={4} />
       )}
 
       {!isLoading && searchTerm && results.length === 0 && (

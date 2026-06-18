@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import type { ConversationListItem } from "@samaa/shared";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/loading-skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -76,26 +76,6 @@ function OutcomeBadge({ outcome }: { outcome: string | null }) {
     <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium", colorMap[outcome] || "bg-secondary text-steel")}>
       {outcome.replace("_", " ")}
     </span>
-  );
-}
-
-function TableSkeleton() {
-  return (
-    <div className="space-y-3 py-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-          <div className="flex-1" />
-          <Skeleton className="h-8 w-16 rounded-lg" />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -216,22 +196,22 @@ export default function ConversationsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton />
+            <TableSkeleton rows={6} columns={9} />
           ) : conversations.length > 0 ? (
             <>
               <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
-                <div className="min-w-[800px]">
+                <div className="min-w-[500px] sm:min-w-[640px] lg:min-w-[800px]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Recorded</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Time Range</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden md:table-cell">Time Range</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Duration</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Segments</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Intent</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden md:table-cell">Segments</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden lg:table-cell">Intent</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Outcome</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Score</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Summary</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden md:table-cell">Score</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden lg:table-cell">Summary</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -249,25 +229,25 @@ export default function ConversationsPage() {
                         <TableCell className="text-steel font-mono text-[13px]">
                           {formatDateTime(conv.recorded_at)}
                         </TableCell>
-                        <TableCell className="font-mono text-[13px] text-charcoal">
+                        <TableCell className="font-mono text-[13px] text-charcoal hidden md:table-cell">
                           {formatTimeRange(conv.start_time, conv.end_time)}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {formatDuration(conv.duration_seconds)}
                         </TableCell>
-                        <TableCell className="text-steel font-mono text-sm">
+                        <TableCell className="text-steel font-mono text-sm hidden md:table-cell">
                           {conv.segment_count}
                         </TableCell>
-                        <TableCell className="text-ink text-sm max-w-[200px] truncate">
+                        <TableCell className="text-ink text-sm max-w-[200px] truncate hidden lg:table-cell">
                           {conv.intent || "—"}
                         </TableCell>
                         <TableCell>
                           <OutcomeBadge outcome={conv.outcome} />
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
+                        <TableCell className="font-mono text-sm hidden md:table-cell">
                           {conv.confidence ? `${conv.confidence}%` : "—"}
                         </TableCell>
-                        <TableCell className="text-steel text-sm max-w-[240px] truncate">
+                        <TableCell className="text-steel text-sm max-w-[240px] truncate hidden lg:table-cell">
                           {conv.summary || "—"}
                         </TableCell>
                         <TableCell className="text-right">

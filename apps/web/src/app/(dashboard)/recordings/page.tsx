@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import type { Recording } from "@samaa/shared";
 import { StatusBadge } from "@/components/status-badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/loading-skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -58,25 +58,6 @@ function formatDate(dateStr: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function TableSkeleton() {
-  return (
-    <div className="space-y-3 py-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-5 w-20 rounded-full" />
-          <div className="flex-1" />
-          <Skeleton className="h-8 w-16 rounded-lg" />
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function RecordingsPage() {
@@ -210,17 +191,18 @@ export default function RecordingsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <TableSkeleton />
+            <TableSkeleton rows={6} columns={5} />
           ) : recordings.length > 0 ? (
             <>
-              <div className="overflow-x-auto -mx-6 sm:mx-0">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
+              <div className="min-w-[380px] sm:min-w-[500px]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Recorded</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Duration</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Status</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Interactions</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">Interactions</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -234,7 +216,7 @@ export default function RecordingsPage() {
                       <TableCell>
                         <StatusBadge status={rec.status} />
                       </TableCell>
-                      <TableCell className="text-steel text-sm">
+                      <TableCell className="text-steel text-sm hidden sm:table-cell">
                         {rec.status === "COMPLETED" ? (
                           <Link href={`/recordings/${rec.id}`} className="text-brand-green-deep hover:underline">
                             View conversations
@@ -270,6 +252,7 @@ export default function RecordingsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               </div>
 
               {/* Pagination */}

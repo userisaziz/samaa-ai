@@ -8,6 +8,8 @@ import { api } from "@/lib/api-client";
 import type { Store, Salesperson, SalespersonPerformance } from "@samaa/shared";
 import { KPICard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { KPICardsSkeleton, ChartsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import {
   Table,
   TableBody,
@@ -47,7 +49,7 @@ export default function StoreDashboardPage() {
     return { from, to };
   });
 
-  const { data: store } = useQuery({
+  const { data: store, isLoading: storeLoading } = useQuery({
     queryKey: ["store", storeId],
     queryFn: () => api.get<Store>(`/stores/${storeId}`),
     enabled: !!storeId,
@@ -126,7 +128,7 @@ export default function StoreDashboardPage() {
   }, [salespeople, performances]);
 
   // Fetch analytics overview + salespeople comparison with date range
-  const { data: analytics } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["analytics-overview", "store", storeId, dateRange.from.toISOString(), dateRange.to.toISOString()],
     queryFn: () =>
       api.get<AnalyticsOverviewResponse>(
@@ -166,6 +168,9 @@ export default function StoreDashboardPage() {
       </div>
 
       {/* KPI Cards */}
+      {storeLoading ? (
+        <KPICardsSkeleton count={4} />
+      ) : (
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Performance Score"
@@ -192,8 +197,12 @@ export default function StoreDashboardPage() {
           description="Sales success rate"
         />
       </div>
+      )}
 
       {/* Analytics Charts */}
+      {analyticsLoading ? (
+        <ChartsSkeleton count={6} />
+      ) : (
       <div className="space-y-4">
         {/* Row 1: Outcome Donut + Deal Closure Gauge */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -225,6 +234,7 @@ export default function StoreDashboardPage() {
         {/* Row 5: Team Skill Heatmap */}
         <SkillHeatmap data={salespeopleComparison?.salespeople ?? []} />
       </div>
+      )}
 
       {/* Salesperson Performance Table with Rankings */}
       <Card className="shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
@@ -235,18 +245,20 @@ export default function StoreDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {salespeople && salespeople.length > 0 ? (
+          {storeLoading ? (
+            <TableSkeleton rows={5} columns={7} />
+          ) : salespeople && salespeople.length > 0 ? (
             <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="min-w-[700px]">
+              <div className="min-w-[450px] sm:min-w-[700px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel w-16">Rank</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Name</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Role</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Shift</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">Role</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden md:table-cell">Shift</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Avg Score</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Interactions</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right hidden sm:table-cell">Interactions</TableHead>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel text-right">Deal Closure</TableHead>
                 </TableRow>
               </TableHeader>
@@ -287,8 +299,8 @@ export default function StoreDashboardPage() {
                           {sp.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-steel">{sp.role || "—"}</TableCell>
-                      <TableCell className="text-steel">{sp.shift || "—"}</TableCell>
+                      <TableCell className="text-steel hidden sm:table-cell">{sp.role || "—"}</TableCell>
+                      <TableCell className="text-steel hidden md:table-cell">{sp.shift || "—"}</TableCell>
                       <TableCell className="text-right">
                         {perf?.avg_overall_score != null ? (
                           <Badge
@@ -308,7 +320,7 @@ export default function StoreDashboardPage() {
                           <span className="text-steel font-mono text-sm">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm">
+                      <TableCell className="text-right font-mono text-sm hidden sm:table-cell">
                         {perf?.total_conversations ?? 0}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">

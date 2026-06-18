@@ -50,13 +50,13 @@ export default function StoresPage() {
             </div>
           ) : stores && stores.length > 0 ? (
             <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="min-w-[500px]">
+              <div className="min-w-[350px] sm:min-w-[500px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Name</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Location</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel">Created</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">Location</TableHead>
+                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-steel hidden sm:table-cell">Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -74,10 +74,10 @@ export default function StoresPage() {
                         {store.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-steel">
+                    <TableCell className="text-steel hidden sm:table-cell">
                       {store.location || "—"}
                     </TableCell>
-                    <TableCell className="text-steel font-mono text-[13px]">
+                    <TableCell className="text-steel font-mono text-[13px] hidden sm:table-cell">
                       {new Date(store.created_at).toLocaleDateString()}
                     </TableCell>
                   </TableRow>

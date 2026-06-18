@@ -9,6 +9,8 @@ import { KPICard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { KPICardsSkeleton } from "@/components/loading-skeleton";
 import { ScoreTrend } from "@/components/charts/score-trend";
 import { ConversionGauge } from "@/components/charts/conversion-gauge";
 import {
@@ -101,7 +103,7 @@ export default function CoachingPage() {
   const activeSalespersonId = selectedSalespersonId || (salespeople?.[0]?.id ?? "");
 
   // Fetch performance for the selected salesperson
-  const { data: performance } = useQuery({
+  const { data: performance, isLoading: performanceLoading } = useQuery({
     queryKey: ["coaching-performance", activeSalespersonId],
     queryFn: () =>
       api.get<SalespersonPerformance>(
@@ -200,6 +202,9 @@ export default function CoachingPage() {
 
         <TabsContent value="overview" className="space-y-6 mt-4">
           {/* KPI Summary */}
+          {performanceLoading ? (
+            <KPICardsSkeleton count={3} />
+          ) : (
           <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <KPICard
               title="Total Interactions"
@@ -228,6 +233,7 @@ export default function CoachingPage() {
               description="Sales success rate"
             />
           </div>
+          )}
 
           {/* Skill Scores + Radar Chart */}
           <div className="grid gap-6 lg:grid-cols-2">
@@ -239,7 +245,19 @@ export default function CoachingPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {performance ? (
+                {performanceLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-8" />
+                        </div>
+                        <Skeleton className="h-2 w-full rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                ) : performance ? (
                   <div className="space-y-4">
                     {Object.entries(SKILL_LABELS).map(([key, label]) => {
                       const score = performance[
@@ -294,7 +312,11 @@ export default function CoachingPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {radarData.some((d) => d.score > 0) ? (
+                {performanceLoading ? (
+                  <div className="h-[280px] flex items-center justify-center">
+                    <Skeleton className="h-[240px] w-[240px] rounded-full" />
+                  </div>
+                ) : radarData.some((d) => d.score > 0) ? (
                   <div className="h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData}>
